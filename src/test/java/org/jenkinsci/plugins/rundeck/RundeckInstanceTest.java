@@ -1,8 +1,3 @@
-/**
- * $URL$
- *
- * $LastChangedBy$ - $LastChangedDate$
- */
 package org.jenkinsci.plugins.rundeck;
 
 import java.io.InputStream;
