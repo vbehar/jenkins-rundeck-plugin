@@ -6,7 +6,7 @@ import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckJobSchedulingExcepti
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckLoginException;
 
 /**
- * Test the integration with a {@link RundeckInstance} : login, job scheduling, etc. Does nothing if the rundeck
+ * Test the integration with a {@link RundeckInstance} : login, job scheduling, etc. Does nothing if the RunDeck
  * instance is not alive.
  * 
  * @author Vincent Behar
@@ -32,7 +32,7 @@ public class RundeckInstanceTest extends TestCase {
                            e.getCause());
             }
         } else {
-            System.out.println("No live rundeck instance at " + rundeck.getUrl() + " - doing nothing...");
+            System.out.println("No live RunDeck instance at " + rundeck.getUrl() + " - doing nothing...");
         }
     }
 
@@ -46,27 +46,28 @@ public class RundeckInstanceTest extends TestCase {
                            e.getCause());
             }
         } else {
-            System.out.println("No live rundeck instance at " + rundeck.getUrl() + " - doing nothing...");
+            System.out.println("No live RunDeck instance at " + rundeck.getUrl() + " - doing nothing...");
         }
     }
 
     public void testValidJob() throws Exception {
         if (rundeck.isAlive()) {
-            rundeck.scheduleJobExecution("main-group/sub-group", "job-name", "version=LATEST");
+            String url = rundeck.scheduleJobExecution("main-group/sub-group", "job-name", "version=LATEST");
+            assertTrue(url.startsWith(rundeck.getUrl() + "/execution/follow/"));
         } else {
-            System.out.println("No live rundeck instance at " + rundeck.getUrl() + " - doing nothing...");
+            System.out.println("No live RunDeck instance at " + rundeck.getUrl() + " - doing nothing...");
         }
     }
 
     public void testRundeckXmlResponseSuccess() throws Exception {
         InputStream input = getClass().getResourceAsStream("success.xml");
-        rundeck.checkXmlResponse(input);
+        assertEquals("/execution/follow/1", rundeck.parseExecutionUrl(input));
     }
 
     public void testRundeckXmlResponseError() throws Exception {
         InputStream input = getClass().getResourceAsStream("error.xml");
         try {
-            rundeck.checkXmlResponse(input);
+            rundeck.parseExecutionUrl(input);
             fail("error response should have failed !");
         } catch (RundeckJobSchedulingException e) {
             assertNotNull("Error response should have a message !", e.getMessage());

@@ -4,6 +4,7 @@ import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
@@ -50,24 +51,24 @@ public class RundeckNotifier extends Notifier {
         RundeckInstance rundeck = getDescriptor().getRundeckInstance();
 
         if (rundeck == null || !rundeck.isConfigurationValid()) {
-            listener.getLogger().println("Rundeck configuration is not valid ! " + rundeck);
+            listener.getLogger().println("RunDeck configuration is not valid ! " + rundeck);
             return false;
         }
         if (!rundeck.isAlive()) {
-            listener.getLogger().println("Rundeck is not running !");
+            listener.getLogger().println("RunDeck is not running !");
             return false;
         }
 
         if (StringUtils.isBlank(tag)) {
-            listener.getLogger().println("Notifying rundeck...");
-            return notifyRundeck(rundeck, listener);
+            listener.getLogger().println("Notifying RunDeck...");
+            return notifyRundeck(rundeck, build, listener);
         }
 
         for (Entry changeLog : build.getChangeSet()) {
             if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
                 listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
-                                             + ") - Notifying rundeck...");
-                return notifyRundeck(rundeck, listener);
+                                             + ") - Notifying RunDeck...");
+                return notifyRundeck(rundeck, build, listener);
             }
         }
 
@@ -78,13 +79,15 @@ public class RundeckNotifier extends Notifier {
      * Schedule a job execution on RunDeck
      * 
      * @param rundeck instance to notify
+     * @param build for adding actions
      * @param listener for logging the result
      * @return true if successful, false otherwise
      */
-    private boolean notifyRundeck(RundeckInstance rundeck, BuildListener listener) {
+    private boolean notifyRundeck(RundeckInstance rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
-            rundeck.scheduleJobExecution(groupPath, jobName, options);
-            listener.getLogger().println("Notification succeeded !");
+            String executionUrl = rundeck.scheduleJobExecution(groupPath, jobName, options);
+            build.addAction(new RundeckExecutionBuildBadgeAction(executionUrl));
+            listener.getLogger().println("Notification succeeded ! Execution url : " + executionUrl);
             return true;
         } catch (RundeckLoginException e) {
             listener.getLogger().println("Login failed on " + rundeck + " : " + e.getMessage());
@@ -97,8 +100,8 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * if we should not fail the build, we need to run after finalized, so that the result of "perform" is not used by
-     * jenkins
+     * If we should not fail the build, we need to run after finalized, so that the result of "perform" is not used by
+     * Jenkins
      */
     @Override
     public boolean needsToRunAfterFinalized() {
@@ -182,6 +185,32 @@ public class RundeckNotifier extends Notifier {
 
         public void setRundeckInstance(RundeckInstance rundeckInstance) {
             this.rundeckInstance = rundeckInstance;
+        }
+    }
+
+    /**
+     * {@link BuildBadgeAction} used to display a RunDeck icon + a link to the RunDeck execution page, on the Jenkins
+     * build history and build result page.
+     */
+    public static class RundeckExecutionBuildBadgeAction implements BuildBadgeAction {
+
+        private final String executionUrl;
+
+        public RundeckExecutionBuildBadgeAction(String executionUrl) {
+            super();
+            this.executionUrl = executionUrl;
+        }
+
+        public String getDisplayName() {
+            return "RunDeck Execution Result";
+        }
+
+        public String getIconFileName() {
+            return "/plugin/rundeck/images/rundeck_24x24.png";
+        }
+
+        public String getUrlName() {
+            return executionUrl;
         }
 
     }

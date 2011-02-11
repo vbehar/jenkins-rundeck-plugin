@@ -16,7 +16,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
 
 /**
- * Represents a rundeck instance, and allows to communicate with it in order to schedule jobs. Uses rundeck 1.1 HTTP API
+ * Represents a RunDeck instance, and allows to communicate with it in order to schedule jobs. Uses RunDeck 1.1 HTTP API
  * to schedule jobs.
  * 
  * @author Vincent Behar
@@ -32,9 +32,9 @@ public class RundeckInstance implements Serializable {
     private final String password;
 
     /**
-     * Build a new rundeck instance
+     * Build a new RunDeck instance
      * 
-     * @param url of the rundeck server (http://localhost:4440)
+     * @param url of the RunDeck server (http://localhost:4440)
      * @param login to use
      * @param password associated with the login
      */
@@ -53,7 +53,7 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
-     * @return true if this rundeck instance is alive, false otherwise
+     * @return true if this RunDeck instance is alive, false otherwise
      */
     public boolean isAlive() {
         try {
@@ -82,11 +82,12 @@ public class RundeckInstance implements Serializable {
      * @param groupPath of the job (eg "main-group/sub-group")
      * @param jobName
      * @param options varargs of options for the execution, in the form "key=value" (optional)
+     * @return the url of the RunDeck execution page
      * @throws RundeckLoginException if the login failed
      * @throws RundeckJobSchedulingException if the scheduling failed
      */
-    public void scheduleJobExecution(String groupPath, String jobName, String... options) throws RundeckLoginException,
-            RundeckJobSchedulingException {
+    public String scheduleJobExecution(String groupPath, String jobName, String... options)
+            throws RundeckLoginException, RundeckJobSchedulingException {
         if (StringUtils.isBlank(groupPath) || StringUtils.isBlank(jobName)) {
             throw new IllegalArgumentException("groupPath and jobName are mandatory");
         }
@@ -108,20 +109,20 @@ public class RundeckInstance implements Serializable {
                                                     + scheduleUrl);
         }
 
-        // check response
+        // retrieve execution url
         InputStream response = null;
         try {
             response = method.getResponseBodyAsStream();
-            checkXmlResponse(response);
+            return url + parseExecutionUrl(response);
         } catch (IOException e) {
-            throw new RundeckJobSchedulingException("Failed to get rundeck result", e);
+            throw new RundeckJobSchedulingException("Failed to get RunDeck result", e);
         } finally {
             IOUtils.closeQuietly(response);
         }
     }
 
     /**
-     * Rundeck current (1.1) API does not support HTTP BASIC auth, so we need to make multiple HTTP requests...
+     * RunDeck current (1.1) API does not support HTTP BASIC auth, so we need to make multiple HTTP requests...
      * 
      * @param httpClient
      * @throws RundeckLoginException if the login failed
@@ -155,7 +156,7 @@ public class RundeckInstance implements Serializable {
                     throw new RundeckLoginException("Login failed for user " + login);
                 }
             } catch (IOException e) {
-                throw new RundeckLoginException("Failed to get rundeck result", e);
+                throw new RundeckLoginException("Failed to get RunDeck result", e);
             }
             break;
         }
@@ -190,19 +191,20 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
-     * Check that the xml response from rundeck is successful
+     * Parse the xml response from RunDeck, and if it is successful, return the execution url.
      * 
      * @param response
+     * @return the RunDeck job execution relative url
      * @throws RundeckJobSchedulingException if the response in an error
      */
-    public void checkXmlResponse(InputStream response) throws RundeckJobSchedulingException {
+    public String parseExecutionUrl(InputStream response) throws RundeckJobSchedulingException {
         SAXReader reader = new SAXReader();
         reader.setEncoding("UTF-8");
         Document document;
         try {
             document = reader.read(response);
         } catch (DocumentException e) {
-            throw new RundeckJobSchedulingException("Failed to read rundeck reponse", e);
+            throw new RundeckJobSchedulingException("Failed to read RunDeck reponse", e);
         }
         document.setXMLEncoding("UTF-8");
 
@@ -210,6 +212,8 @@ public class RundeckInstance implements Serializable {
         if (!success) {
             throw new RundeckJobSchedulingException(document.valueOf("result/error/message"));
         }
+
+        return document.valueOf("result/succeeded/execution[@index='0']/url");
     }
 
     public String getUrl() {
@@ -267,7 +271,7 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
-     * Exception used when the login failed on a rundeck instance
+     * Exception used when the login failed on a RunDeck instance
      */
     public static class RundeckLoginException extends Exception {
 
@@ -284,7 +288,7 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
-     * Exception used when a job scheduling failed on a rundeck instance
+     * Exception used when a job scheduling failed on a RunDeck instance
      */
     public static class RundeckJobSchedulingException extends Exception {
 
