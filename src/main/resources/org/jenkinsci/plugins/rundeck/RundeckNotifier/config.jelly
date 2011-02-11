@@ -8,7 +8,7 @@
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
   </f:entry>
-  <f:entry title="Tag" field="tag">
+  <f:entry title="Tag (optional)" field="tag">
     <f:textbox />
   </f:entry>
   <f:entry title="Should fail the build ?" field="shouldFailTheBuild">
