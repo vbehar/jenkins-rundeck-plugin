@@ -6,6 +6,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
+import hudson.model.Result;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -48,6 +49,10 @@ public class RundeckNotifier extends Notifier {
     @Override
     public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
             throws InterruptedException, IOException {
+        if (build.getResult() != Result.SUCCESS) {
+            return true;
+        }
+
         RundeckInstance rundeck = getDescriptor().getRundeckInstance();
 
         if (rundeck == null || !rundeck.isConfigurationValid()) {

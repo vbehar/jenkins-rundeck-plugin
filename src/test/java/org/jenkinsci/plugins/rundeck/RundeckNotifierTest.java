@@ -24,34 +24,6 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
  */
 public class RundeckNotifierTest extends HudsonTestCase {
 
-    public void testStandardCommit() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group",
-                                                       "job",
-                                                       new String[] { "option1=value1" },
-                                                       "#deploy",
-                                                       false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
-
-        FreeStyleProject project = createFreeStyleProject();
-        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
-        project.getPublishersList().add(notifier);
-        project.setScm(createScm());
-
-        // first build
-        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
-        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
-        String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
-
-        addScmCommit(build.getWorkspace(), "commit message");
-
-        // second build
-        build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
-        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
-        s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
-    }
-
     public void testCommitWithoutTag() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[] { "option1=value1" }, "", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
@@ -78,12 +50,32 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Notification succeeded !"));
     }
 
+    public void testStandardCommitWithTag() throws Exception {
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", false);
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+
+        FreeStyleProject project = createFreeStyleProject();
+        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
+        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertFalse(s.contains("Notifying RunDeck"));
+
+        addScmCommit(build.getWorkspace(), "commit message");
+
+        // second build
+        build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
+        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        s = FileUtils.readFileToString(build.getLogFile());
+        assertFalse(s.contains("Notifying RunDeck"));
+    }
+
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group",
-                                                       "job",
-                                                       new String[] { "option1=value1" },
-                                                       "#deploy",
-                                                       false);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -109,11 +101,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group",
-                                                       "job",
-                                                       new String[] { "option1=value1" },
-                                                       "#deploy",
-                                                       true);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", true);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
 
             private static final long serialVersionUID = 1L;
@@ -147,6 +135,30 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("#deploy"));
         assertTrue(s.contains("Scheduling failed"));
         assertTrue(s.contains("Fake error for testing"));
+    }
+
+    public void testFailedBuild() throws Exception {
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[] { "option1=value1" }, "", false);
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+
+        FreeStyleProject project = createFreeStyleProject();
+        project.getBuildersList().add(new MockBuilder(Result.FAILURE));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild build = assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0).get());
+        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertFalse(s.contains("Notifying RunDeck"));
+
+        addScmCommit(build.getWorkspace(), "commit message");
+
+        // second build
+        build = assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0).get());
+        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        s = FileUtils.readFileToString(build.getLogFile());
+        assertFalse(s.contains("Notifying RunDeck"));
     }
 
     private SubversionSCM createScm() throws Exception {
