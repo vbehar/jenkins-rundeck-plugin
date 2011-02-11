@@ -2,22 +2,26 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
+import hudson.model.Hudson;
 import hudson.model.Result;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
+import hudson.util.FormValidation;
 import java.io.IOException;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckJobSchedulingException;
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckLoginException;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
@@ -172,6 +176,29 @@ public class RundeckNotifier extends Notifier {
                                        StringUtils.split(formData.getString("options"), '\n'),
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldFailTheBuild"));
+        }
+
+        public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
+                @QueryParameter("rundeck.login") final String login,
+                @QueryParameter("rundeck.password") final String password) {
+            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
+                return FormValidation.ok();
+            }
+            if (Util.fixEmpty(url) == null) { // url is not entered yet
+                return FormValidation.ok();
+            }
+
+            RundeckInstance rundeck = new RundeckInstance(url, login, password);
+            if (!rundeck.isConfigurationValid()) {
+                return FormValidation.error("RunDeck configuration is not valid !");
+            }
+            if (!rundeck.isAlive()) {
+                return FormValidation.error("We couldn't find a live RunDeck instance at %s", rundeck.getUrl());
+            }
+            if (!rundeck.isLoginValid()) {
+                return FormValidation.error("Your credentials for the user %s are not valid !", rundeck.getLogin());
+            }
+            return FormValidation.ok("Your RunDeck instance is alive, and your credentials are valid !");
         }
 
         @Override

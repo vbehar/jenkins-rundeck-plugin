@@ -9,5 +9,7 @@
     <f:entry title="Password" help="/plugin/rundeck/help-globalConfig-password.html">
       <f:textbox name="rundeck.password" value="${descriptor.getRundeckInstance().getPassword()}" />
     </f:entry>
+    <f:validateButton title="Test Connection" progress="Testing..." method="testConnection"
+      with="rundeck.url,rundeck.login,rundeck.password" />
   </f:section>
 </j:jelly>
