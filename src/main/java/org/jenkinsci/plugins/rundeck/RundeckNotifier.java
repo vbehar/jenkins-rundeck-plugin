@@ -2,13 +2,11 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
-import hudson.model.Hudson;
 import hudson.model.Result;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -181,13 +179,6 @@ public class RundeckNotifier extends Notifier {
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                 @QueryParameter("rundeck.login") final String login,
                 @QueryParameter("rundeck.password") final String password) {
-            if (!Hudson.getInstance().hasPermission(Hudson.ADMINISTER)) {
-                return FormValidation.ok();
-            }
-            if (Util.fixEmpty(url) == null) { // url is not entered yet
-                return FormValidation.ok();
-            }
-
             RundeckInstance rundeck = new RundeckInstance(url, login, password);
             if (!rundeck.isConfigurationValid()) {
                 return FormValidation.error("RunDeck configuration is not valid !");
