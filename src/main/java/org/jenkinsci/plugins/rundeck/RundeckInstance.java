@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Properties;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -79,14 +81,14 @@ public class RundeckInstance implements Serializable {
     /**
      * Schedule a job execution, identified by the given groupPath and jobName.
      * 
-     * @param groupPath of the job (eg "main-group/sub-group")
-     * @param jobName
-     * @param options varargs of options for the execution, in the form "key=value" (optional)
+     * @param groupPath of the job (eg "main-group/sub-group") - mandatory
+     * @param jobName - mandatoru
+     * @param options for the job, optional
      * @return the url of the RunDeck execution page
      * @throws RundeckLoginException if the login failed
      * @throws RundeckJobSchedulingException if the scheduling failed
      */
-    public String scheduleJobExecution(String groupPath, String jobName, String... options)
+    public String scheduleJobExecution(String groupPath, String jobName, Properties options)
             throws RundeckLoginException, RundeckJobSchedulingException {
         if (StringUtils.isBlank(groupPath) || StringUtils.isBlank(jobName)) {
             throw new IllegalArgumentException("groupPath and jobName are mandatory");
@@ -167,23 +169,19 @@ public class RundeckInstance implements Serializable {
      * 
      * @param groupPath of the job (eg "main-group/sub-group")
      * @param jobName
-     * @param options varargs of options for the execution, in the form "key=value" (optional)
+     * @param options (may be null or empty, as it is optional)
      * @return an array of {@link NameValuePair}, won't be null or empty (at least 2 entries : group and job)
      */
-    private NameValuePair[] prepareQueryString(String groupPath, String jobName, String... options) {
+    private NameValuePair[] prepareQueryString(String groupPath, String jobName, Properties options) {
         List<NameValuePair> queryString = new ArrayList<NameValuePair>();
 
         queryString.add(new NameValuePair("groupPath", groupPath));
         queryString.add(new NameValuePair("jobName", jobName));
 
         if (options != null) {
-            for (String option : options) {
-                if (StringUtils.isNotBlank(option)) {
-                    String[] keyAndValue = StringUtils.split(option, "=", 2);
-                    if (keyAndValue != null && keyAndValue.length == 2) {
-                        queryString.add(new NameValuePair("extra.command.option." + keyAndValue[0], keyAndValue[1]));
-                    }
-                }
+            for (Entry<Object, Object> option : options.entrySet()) {
+                queryString.add(new NameValuePair("extra.command.option." + option.getKey(),
+                                                  String.valueOf(option.getValue())));
             }
         }
 

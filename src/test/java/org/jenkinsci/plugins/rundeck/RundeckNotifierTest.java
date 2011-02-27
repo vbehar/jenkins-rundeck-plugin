@@ -4,16 +4,20 @@ import hudson.FilePath;
 import hudson.model.Action;
 import hudson.model.Build;
 import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
 import hudson.model.Result;
+import hudson.model.FreeStyleProject;
 import hudson.scm.SubversionSCM;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckExecutionBuildBadgeAction;
+import org.junit.Assert;
+import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
-import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 
@@ -25,7 +29,7 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
 public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testCommitWithoutTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[] { "option1=value1" }, "", false);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", createOptions(), "", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -51,7 +55,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testStandardCommitWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", false);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", null, "#deploy", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -75,7 +79,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", false);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", null, "#deploy", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -101,13 +105,13 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[0], "#deploy", true);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", null, "#deploy", true);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
 
             private static final long serialVersionUID = 1L;
 
             @Override
-            public String scheduleJobExecution(String groupPath, String jobName, String... options)
+            public String scheduleJobExecution(String groupPath, String jobName, Properties options)
                     throws RundeckLoginException, RundeckJobSchedulingException {
                 throw new RundeckJobSchedulingException("Fake error for testing");
             }
@@ -137,8 +141,39 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Fake error for testing"));
     }
 
+    public void testExpandEnvVarsInOptions() throws Exception {
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", createOptions(), null, true);
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
+
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public String scheduleJobExecution(String groupPath, String jobName, Properties options)
+                    throws RundeckLoginException, RundeckJobSchedulingException {
+                Assert.assertEquals(4, options.size());
+                Assert.assertEquals("value 1", options.getProperty("option1"));
+                Assert.assertEquals("1", options.getProperty("buildNumber"));
+                Assert.assertEquals("my project name", options.getProperty("jobName"));
+                return super.scheduleJobExecution(groupPath, jobName, options);
+            }
+
+        });
+
+        FreeStyleProject project = createFreeStyleProject("my project name");
+        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
+        assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notification succeeded !"));
+    }
+
     public void testFailedBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("group", "job", new String[] { "option1=value1" }, "", false);
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", createOptions(), "", false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -159,6 +194,22 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
         assertFalse(s.contains("Notifying RunDeck"));
+    }
+
+    private String createOptions() {
+        Properties options = new Properties();
+        options.setProperty("option1", "value 1");
+        options.setProperty("workspace", "$WORKSPACE");
+        options.setProperty("jobName", "$JOB_NAME");
+        options.setProperty("buildNumber", "$BUILD_NUMBER");
+
+        StringWriter writer = new StringWriter();
+        try {
+            options.store(writer, "this is a comment line");
+            return writer.toString();
+        } catch (IOException e) {
+            return "";
+        }
     }
 
     private SubversionSCM createScm() throws Exception {
@@ -224,7 +275,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         }
 
         @Override
-        public String scheduleJobExecution(String groupPath, String jobName, String... options)
+        public String scheduleJobExecution(String groupPath, String jobName, Properties options)
                 throws RundeckLoginException, RundeckJobSchedulingException {
             return "http://localhost:4440/execution/follow/1";
         }

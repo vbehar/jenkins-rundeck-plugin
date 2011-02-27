@@ -1,7 +1,9 @@
 package org.jenkinsci.plugins.rundeck;
 
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.Util;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
 import hudson.model.Result;
@@ -14,6 +16,7 @@ import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import java.io.IOException;
+import java.util.Properties;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckJobSchedulingException;
@@ -33,14 +36,14 @@ public class RundeckNotifier extends Notifier {
 
     private final String jobName;
 
-    private final String[] options;
+    private final String options;
 
     private final String tag;
 
     private final Boolean shouldFailTheBuild;
 
     @DataBoundConstructor
-    public RundeckNotifier(String groupPath, String jobName, String[] options, String tag, Boolean shouldFailTheBuild) {
+    public RundeckNotifier(String groupPath, String jobName, String options, String tag, Boolean shouldFailTheBuild) {
         this.groupPath = groupPath;
         this.jobName = jobName;
         this.options = options;
@@ -92,7 +95,9 @@ public class RundeckNotifier extends Notifier {
      */
     private boolean notifyRundeck(RundeckInstance rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
-            String executionUrl = rundeck.scheduleJobExecution(groupPath, jobName, options);
+            String executionUrl = rundeck.scheduleJobExecution(groupPath,
+                                                               jobName,
+                                                               parseOptions(options, build, listener));
             build.addAction(new RundeckExecutionBuildBadgeAction(executionUrl));
             listener.getLogger().println("Notification succeeded ! Execution url : " + executionUrl);
             return true;
@@ -103,6 +108,36 @@ public class RundeckNotifier extends Notifier {
             listener.getLogger().println("Scheduling failed for job " + groupPath + "/" + jobName + " on " + rundeck
                                          + " : " + e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Parse the options (should be in the Java-Properties syntax) and expand Jenkins environment variables.
+     * 
+     * @param optionsAsString specified in the Java-Properties syntax (multi-line, key and value separated by = or :)
+     * @param build for retrieving Jenkins environment variables
+     * @param listener for retrieving Jenkins environment variables and logging the errors
+     * @return A {@link Properties} instance (may be empty), or null if unable to parse the options
+     */
+    private Properties parseOptions(String optionsAsString, AbstractBuild<?, ?> build, BuildListener listener) {
+        if (StringUtils.isBlank(optionsAsString)) {
+            return new Properties();
+        }
+
+        // try to expand env vars
+        try {
+            EnvVars envVars = build.getEnvironment(listener);
+            optionsAsString = Util.replaceMacro(optionsAsString, envVars);
+        } catch (Exception e) {
+            listener.getLogger().println("Failed to expand environment variables : " + e.getMessage());
+        }
+
+        try {
+            return Util.loadProperties(optionsAsString);
+        } catch (IOException e) {
+            listener.getLogger().println("Failed to parse options : " + optionsAsString);
+            listener.getLogger().println("Error : " + e.getMessage());
+            return null;
         }
     }
 
@@ -127,11 +162,8 @@ public class RundeckNotifier extends Notifier {
         return jobName;
     }
 
-    /**
-     * @return a multi-lines string representation, for use in the view (jelly textarea)
-     */
     public String getOptions() {
-        return StringUtils.join(options, '\n');
+        return options;
     }
 
     public String getTag() {
@@ -171,7 +203,7 @@ public class RundeckNotifier extends Notifier {
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return new RundeckNotifier(formData.getString("groupPath"),
                                        formData.getString("jobName"),
-                                       StringUtils.split(formData.getString("options"), '\n'),
+                                       formData.getString("options"),
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldFailTheBuild"));
         }

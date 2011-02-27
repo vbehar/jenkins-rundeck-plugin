@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
 import java.io.InputStream;
+import java.util.Properties;
 import junit.framework.TestCase;
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckJobSchedulingException;
 import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckLoginException;
@@ -25,7 +26,7 @@ public class RundeckInstanceTest extends TestCase {
         rundeck = new RundeckInstance(rundeck.getUrl(), "invalid", "invalidToo");
         if (rundeck.isAlive()) {
             try {
-                rundeck.scheduleJobExecution("whateverGroup", "whateverJob");
+                rundeck.scheduleJobExecution("whateverGroup", "whateverJob", null);
                 fail("login for an invalid user should have failed !");
             } catch (RundeckLoginException e) {
                 assertNull("Login failure for invalid user should not have a cause ! cause : " + e.getCause(),
@@ -39,7 +40,7 @@ public class RundeckInstanceTest extends TestCase {
     public void testInvalidJob() throws Exception {
         if (rundeck.isAlive()) {
             try {
-                rundeck.scheduleJobExecution("whateverGroup", "whateverJob");
+                rundeck.scheduleJobExecution("whateverGroup", "whateverJob", null);
                 fail("scheduling for an invalid job should have failed !");
             } catch (RundeckJobSchedulingException e) {
                 assertNull("Scheduling failure for invalid job should not have a cause ! cause : " + e.getCause(),
@@ -52,7 +53,9 @@ public class RundeckInstanceTest extends TestCase {
 
     public void testValidJob() throws Exception {
         if (rundeck.isAlive()) {
-            String url = rundeck.scheduleJobExecution("main-group/sub-group", "job-name", "version=LATEST");
+            Properties options = new Properties();
+            options.setProperty("version", "LATEST");
+            String url = rundeck.scheduleJobExecution("main-group/sub-group", "job-name", options);
             assertTrue(url.startsWith(rundeck.getUrl() + "/execution/follow/"));
         } else {
             System.out.println("No live RunDeck instance at " + rundeck.getUrl() + " - doing nothing...");
