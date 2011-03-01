@@ -5,6 +5,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Run;
 import hudson.model.Run.Artifact;
+import hudson.util.RunList;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -23,11 +24,14 @@ import org.kohsuke.stapler.StaplerResponse;
 public class OptionProvider {
 
     /**
-     * Provider for artifacts of a specific build, with the name and absolute url of the artifact.
+     * Provider for artifacts of a specific build, with the name and absolute url of the artifact.<br>
+     * Mandatory parameter : "project"<br>
+     * Optional parameters : "build" (either a build number, or "lastStable", "lastSuccessful", "last")
      */
     public void doArtifact(StaplerRequest request, StaplerResponse response) throws IOException {
-        AbstractProject<?, ?> project = findProject(request.getParameter("project"), response);
+        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
         if (project == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
             return;
         }
 
@@ -38,10 +42,75 @@ public class OptionProvider {
 
         List<Option> options = new ArrayList<OptionProvider.Option>();
         for (Artifact artifact : build.getArtifacts()) {
-            StringBuilder url = new StringBuilder();
-            url.append(Hudson.getInstance().getRootUrlFromRequest());
-            url.append(build.getUrl()).append("artifact/").append(artifact.getHref());
-            options.add(new Option(artifact.getFileName(), url.toString()));
+            options.add(new Option(artifact.getFileName(), buildArtifactUrl(build, artifact)));
+        }
+
+        writeJson(options, response);
+    }
+
+    /**
+     * Provider for builds of a specific artifact, with the version/date of the build and absolute url of the artifact.<br>
+     * Mandatory parameters : "project" and "artifact" (filename of the artifact)<br>
+     * Optional parameters : "limit" (int), "includeLastStableBuild" (boolean), "includeLastSuccessfulBuild" (boolean),
+     * "includeLastBuild" (boolean)
+     */
+    public void doBuild(StaplerRequest request, StaplerResponse response) throws IOException {
+        // mandatory parameters
+        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
+        if (project == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
+            return;
+        }
+        String artifactName = request.getParameter("artifact");
+        if (StringUtils.isBlank(artifactName)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'artifact' parameter !");
+            return;
+        }
+
+        // optional parameters
+        Integer limit;
+        try {
+            limit = Integer.parseInt(request.getParameter("limit"));
+        } catch (NumberFormatException e) {
+            limit = null;
+        }
+
+        // build options
+        List<Option> options = new ArrayList<OptionProvider.Option>();
+        RunList<?> builds = project.getBuilds();
+        for (Run<?, ?> build : builds) {
+            Artifact artifact = findArtifact(artifactName, build);
+            if (artifact != null) {
+                String buildName = "#" + build.getNumber() + " - " + build.getTimestampString2();
+                options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
+            }
+
+            if (limit != null && options.size() >= limit) {
+                break;
+            }
+        }
+
+        // add optional references to last / lastStable / lastSuccessful builds
+        if (Boolean.valueOf(request.getParameter("includeLastStableBuild"))) {
+            Run<?, ?> build = project.getLastStableBuild();
+            Artifact artifact = findArtifact(artifactName, build);
+            if (build != null && artifact != null) {
+                options.add(0, new Option("lastStableBuild", buildArtifactUrl(build, artifact)));
+            }
+        }
+        if (Boolean.valueOf(request.getParameter("includeLastSuccessfulBuild"))) {
+            Run<?, ?> build = project.getLastSuccessfulBuild();
+            Artifact artifact = findArtifact(artifactName, build);
+            if (build != null && artifact != null) {
+                options.add(0, new Option("lastSuccessfulBuild", buildArtifactUrl(build, artifact)));
+            }
+        }
+        if (Boolean.valueOf(request.getParameter("includeLastBuild"))) {
+            Run<?, ?> build = project.getLastBuild();
+            Artifact artifact = findArtifact(artifactName, build);
+            if (build != null && artifact != null) {
+                options.add(0, new Option("lastBuild", buildArtifactUrl(build, artifact)));
+            }
         }
 
         writeJson(options, response);
@@ -51,12 +120,10 @@ public class OptionProvider {
      * Find the Jenkins project matching the given name.
      * 
      * @param projectName
-     * @param response
      * @return an {@link AbstractProject} instance, or null if not found
      */
-    private AbstractProject<?, ?> findProject(String projectName, StaplerResponse response) throws IOException {
+    private AbstractProject<?, ?> findProject(String projectName) {
         if (StringUtils.isBlank(projectName)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parameter 'project' is mandatory !");
             return null;
         }
 
@@ -65,7 +132,6 @@ public class OptionProvider {
             return (AbstractProject<?, ?>) item;
         }
 
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No project with name : " + projectName);
         return null;
     }
 
@@ -103,6 +169,41 @@ public class OptionProvider {
 
         // fallback to the last build
         return project.getLastBuild();
+    }
+
+    /**
+     * Find an artifact of the given build, matching the artifactName (filename). If not found, return null.
+     * 
+     * @param artifactName filename of the artifact
+     * @param build
+     * @return an {@link Artifact} instance, or null if not found
+     */
+    private Artifact findArtifact(String artifactName, Run<?, ?> build) {
+        if (build == null) {
+            return null;
+        }
+
+        for (Artifact artifact : build.getArtifacts()) {
+            if (StringUtils.equals(artifactName, artifact.getFileName())) {
+                return artifact;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Build the absolute url of the given artifact
+     * 
+     * @param build
+     * @param artifact
+     * @return absolute url
+     */
+    private String buildArtifactUrl(Run<?, ?> build, Artifact artifact) {
+        StringBuilder url = new StringBuilder();
+        url.append(Hudson.getInstance().getRootUrlFromRequest());
+        url.append(build.getUrl()).append("artifact/").append(artifact.getHref());
+        return url.toString();
     }
 
     /**
