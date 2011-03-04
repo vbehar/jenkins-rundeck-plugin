@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>rundeck</artifactId>
-  <version>1.5-SNAPSHOT</version>
+  <version>1.5</version>
   <packaging>hpi</packaging>
 
   <name>Jenkins RunDeck plugin</name>
