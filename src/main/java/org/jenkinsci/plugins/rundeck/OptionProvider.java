@@ -128,7 +128,7 @@ public class OptionProvider {
         }
 
         TopLevelItem item = Hudson.getInstance().getItem(projectName);
-        if (item != null && item instanceof AbstractProject<?, ?>) {
+        if (AbstractProject.class.isInstance(item)) {
             return (AbstractProject<?, ?>) item;
         }
 

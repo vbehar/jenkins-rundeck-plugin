@@ -5,7 +5,9 @@ import hudson.model.Action;
 import hudson.model.Build;
 import hudson.model.FreeStyleBuild;
 import hudson.model.Result;
+import hudson.model.Cause.UpstreamCause;
 import hudson.model.FreeStyleProject;
+import hudson.model.Run;
 import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
@@ -169,6 +171,41 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
         assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notification succeeded !"));
+    }
+
+    public void testUpstreamBuildWithTag() throws Exception {
+        RundeckNotifier notifier = new RundeckNotifier("group", "job", null, "#deploy", false);
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+
+        FreeStyleProject upstream = createFreeStyleProject("upstream");
+        upstream.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        upstream.setScm(createScm());
+
+        FreeStyleProject project = createFreeStyleProject();
+        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild upstreamBuild = assertBuildStatusSuccess(upstream.scheduleBuild2(0).get());
+        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0,
+                                                                               new UpstreamCause((Run<?, ?>) upstreamBuild))
+                                                               .get());
+        assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertFalse(s.contains("Notifying RunDeck"));
+
+        addScmCommit(upstreamBuild.getWorkspace(), "commit message - #deploy");
+
+        // second build
+        upstreamBuild = assertBuildStatusSuccess(upstream.scheduleBuild2(0).get());
+        build = assertBuildStatusSuccess(project.scheduleBuild2(0, new UpstreamCause((Run<?, ?>) upstreamBuild)).get());
+        assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        s = FileUtils.readFileToString(build.getLogFile());
+        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("#deploy"));
+        assertTrue(s.contains("in upstream build (" + upstreamBuild.getFullDisplayName() + ")"));
         assertTrue(s.contains("Notification succeeded !"));
     }
 

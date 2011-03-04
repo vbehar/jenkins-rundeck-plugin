@@ -7,8 +7,12 @@ import hudson.Util;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
 import hudson.model.Result;
+import hudson.model.TopLevelItem;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Cause;
+import hudson.model.Cause.UpstreamCause;
+import hudson.model.Hudson;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -69,20 +73,60 @@ public class RundeckNotifier extends Notifier {
             return false;
         }
 
-        if (StringUtils.isBlank(tag)) {
-            listener.getLogger().println("Notifying RunDeck...");
+        if (shouldNotifyRundeck(build, listener)) {
             return notifyRundeck(rundeck, build, listener);
         }
 
+        return true;
+    }
+
+    /**
+     * Check if we need to notify RunDeck for this build. If we have a tag, we will look for it in the changelog of the
+     * build and in the changelog of all upstream builds.
+     * 
+     * @param build for checking the changelog
+     * @param listener for logging the result
+     * @return true if we should notify RunDeck, false otherwise
+     */
+    private boolean shouldNotifyRundeck(AbstractBuild<?, ?> build, BuildListener listener) {
+        if (StringUtils.isBlank(tag)) {
+            listener.getLogger().println("Notifying RunDeck...");
+            return true;
+        }
+
+        // check for the tag in the changelog
         for (Entry changeLog : build.getChangeSet()) {
             if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
                 listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
                                              + ") - Notifying RunDeck...");
-                return notifyRundeck(rundeck, build, listener);
+                return true;
             }
         }
 
-        return true;
+        // if we have an upstream cause, check for the tag in the changelog from upstream
+        for (Cause cause : build.getCauses()) {
+            if (UpstreamCause.class.isInstance(cause)) {
+                UpstreamCause upstreamCause = (UpstreamCause) cause;
+                TopLevelItem item = Hudson.getInstance().getItem(upstreamCause.getUpstreamProject());
+                if (AbstractProject.class.isInstance(item)) {
+                    AbstractProject<?, ?> upstreamProject = (AbstractProject<?, ?>) item;
+                    AbstractBuild<?, ?> upstreamBuild = upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
+                    if (upstreamBuild != null) {
+                        for (Entry changeLog : upstreamBuild.getChangeSet()) {
+                            if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
+                                listener.getLogger().println("Found " + tag + " in changelog (from "
+                                                             + changeLog.getAuthor().getId() + ") in upstream build ("
+                                                             + upstreamBuild.getFullDisplayName()
+                                                             + ") - Notifying RunDeck...");
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
