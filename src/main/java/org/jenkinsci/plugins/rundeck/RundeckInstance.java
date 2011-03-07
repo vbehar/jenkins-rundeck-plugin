@@ -7,12 +7,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Properties;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.util.EntityUtils;
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;
@@ -58,11 +65,14 @@ public class RundeckInstance implements Serializable {
      * @return true if this RunDeck instance is alive, false otherwise
      */
     public boolean isAlive() {
+        HttpClient httpClient = new DefaultHttpClient();
         try {
-            int responseCode = new HttpClient().executeMethod(new GetMethod(url));
-            return (responseCode / 100 == 2) ? true : false;
-        } catch (Exception e) {
+            HttpResponse response = httpClient.execute(new HttpGet(url));
+            return response.getStatusLine().getStatusCode() / 100 == 2;
+        } catch (IOException e) {
             return false;
+        } finally {
+            httpClient.getConnectionManager().shutdown();
         }
     }
 
@@ -70,11 +80,14 @@ public class RundeckInstance implements Serializable {
      * @return true if the credentials (login/password) are valid, false otherwise
      */
     public boolean isLoginValid() {
+        HttpClient httpClient = new DefaultHttpClient();
         try {
-            doLogin(new HttpClient());
+            doLogin(httpClient);
             return true;
         } catch (RundeckLoginException e) {
             return false;
+        } finally {
+            httpClient.getConnectionManager().shutdown();
         }
     }
 
@@ -82,7 +95,7 @@ public class RundeckInstance implements Serializable {
      * Schedule a job execution, identified by the given groupPath and jobName.
      * 
      * @param groupPath of the job (eg "main-group/sub-group") - mandatory
-     * @param jobName - mandatoru
+     * @param jobName - mandatory
      * @param options for the job, optional
      * @return the url of the RunDeck execution page
      * @throws RundeckLoginException if the login failed
@@ -94,32 +107,37 @@ public class RundeckInstance implements Serializable {
             throw new IllegalArgumentException("groupPath and jobName are mandatory");
         }
 
-        HttpClient httpClient = new HttpClient();
-
-        doLogin(httpClient);
-
-        String scheduleUrl = url + "/scheduledExecution/runJobByName.xml";
-        GetMethod method = new GetMethod(scheduleUrl);
-        method.setQueryString(prepareQueryString(groupPath, jobName, options));
+        HttpClient httpClient = new DefaultHttpClient();
         try {
-            httpClient.executeMethod(method);
-        } catch (Exception e) {
-            throw new RundeckJobSchedulingException("Failed to schedule job", e);
-        }
-        if (method.getStatusCode() / 100 != 2) {
-            throw new RundeckJobSchedulingException("Invalid HTTP code result : " + method.getStatusCode() + " for "
-                                                    + scheduleUrl);
-        }
+            doLogin(httpClient);
 
-        // retrieve execution url
-        InputStream response = null;
-        try {
-            response = method.getResponseBodyAsStream();
-            return url + parseExecutionUrl(response);
-        } catch (IOException e) {
-            throw new RundeckJobSchedulingException("Failed to get RunDeck result", e);
+            String scheduleUrl = url + "/scheduledExecution/runJobByName.xml?"
+                                 + prepareQueryString(groupPath, jobName, options);
+            HttpResponse response = null;
+            try {
+                response = httpClient.execute(new HttpGet(scheduleUrl));
+            } catch (IOException e) {
+                throw new RundeckJobSchedulingException("Failed to schedule job", e);
+            }
+            if (response.getStatusLine().getStatusCode() / 100 != 2) {
+                throw new RundeckJobSchedulingException("Invalid HTTP response '" + response.getStatusLine() + "' for "
+                                                        + scheduleUrl);
+            }
+
+            // retrieve execution url
+            if (response.getEntity() == null) {
+                throw new RundeckJobSchedulingException("Empty RunDeck response ! HTTP status line is : "
+                                                        + response.getStatusLine());
+            }
+            try {
+                String executionUrl = url + parseExecutionUrl(response.getEntity().getContent());
+                EntityUtils.consume(response.getEntity());
+                return executionUrl;
+            } catch (IOException e) {
+                throw new RundeckJobSchedulingException("Failed to read RunDeck response", e);
+            }
         } finally {
-            IOUtils.closeQuietly(response);
+            httpClient.getConnectionManager().shutdown();
         }
     }
 
@@ -131,61 +149,77 @@ public class RundeckInstance implements Serializable {
      */
     private void doLogin(HttpClient httpClient) throws RundeckLoginException {
         String location = url + "/j_security_check";
+
         while (true) {
-            PostMethod loginMethod = new PostMethod(location);
-            loginMethod.addParameter("j_username", login);
-            loginMethod.addParameter("j_password", password);
-            loginMethod.addParameter("action", "login");
+            HttpPost postLogin = new HttpPost(location);
+            List<NameValuePair> params = new ArrayList<NameValuePair>();
+            params.add(new BasicNameValuePair("j_username", login));
+            params.add(new BasicNameValuePair("j_password", password));
+            params.add(new BasicNameValuePair("action", "login"));
+
+            HttpResponse response = null;
             try {
-                httpClient.executeMethod(loginMethod);
-            } catch (Exception e) {
+                postLogin.setEntity(new UrlEncodedFormEntity(params, HTTP.UTF_8));
+                response = httpClient.execute(postLogin);
+            } catch (IOException e) {
                 throw new RundeckLoginException("Failed to post login form on " + location, e);
             }
-            if (loginMethod.getStatusCode() / 100 == 3) {
-                // Commons HTTP client refuses to handle redirects (code 3xx) for POST
-                // so we have to do it manually...
-                location = loginMethod.getResponseHeader("Location").getValue();
+
+            if (response.getStatusLine().getStatusCode() / 100 == 3) {
+                // HTTP client refuses to handle redirects (code 3xx) for POST, so we have to do it manually...
+                location = response.getFirstHeader("Location").getValue();
+                try {
+                    EntityUtils.consume(response.getEntity());
+                } catch (IOException e) {
+                    throw new RundeckLoginException("Failed to consume entity (release connection)", e);
+                }
                 continue;
             }
-            if (loginMethod.getStatusCode() / 100 != 2) {
-                // either a 4xx or 5xx, not good !
-                throw new RundeckLoginException("Invalid HTTP code result : " + loginMethod.getStatusCode() + " for "
+            if (response.getStatusLine().getStatusCode() / 100 != 2) {
+                throw new RundeckLoginException("Invalid HTTP response '" + response.getStatusLine() + "' for "
                                                 + location);
             }
             try {
-                String content = loginMethod.getResponseBodyAsString();
+                String content = EntityUtils.toString(response.getEntity(), HTTP.UTF_8);
                 if (StringUtils.contains(content, "j_security_check")) {
                     throw new RundeckLoginException("Login failed for user " + login);
                 }
-            } catch (IOException e) {
-                throw new RundeckLoginException("Failed to get RunDeck result", e);
+                try {
+                    EntityUtils.consume(response.getEntity());
+                } catch (IOException e) {
+                    throw new RundeckLoginException("Failed to consume entity (release connection)", e);
+                }
+            } catch (IOException io) {
+                throw new RundeckLoginException("Failed to read RunDeck result", io);
+            } catch (ParseException p) {
+                throw new RundeckLoginException("Failed to parse RunDeck response", p);
             }
             break;
         }
     }
 
     /**
-     * prepare the {@link HttpClient}'s queryString containing the group/job and the options.
+     * prepares an url-encoded HTTP queryString containing the group/job and the options.
      * 
      * @param groupPath of the job (eg "main-group/sub-group")
      * @param jobName
      * @param options (may be null or empty, as it is optional)
-     * @return an array of {@link NameValuePair}, won't be null or empty (at least 2 entries : group and job)
+     * @return an url-encoded string
      */
-    private NameValuePair[] prepareQueryString(String groupPath, String jobName, Properties options) {
-        List<NameValuePair> queryString = new ArrayList<NameValuePair>();
+    private String prepareQueryString(String groupPath, String jobName, Properties options) {
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>();
 
-        queryString.add(new NameValuePair("groupPath", groupPath));
-        queryString.add(new NameValuePair("jobName", jobName));
+        parameters.add(new BasicNameValuePair("groupPath", groupPath));
+        parameters.add(new BasicNameValuePair("jobName", jobName));
 
         if (options != null) {
             for (Entry<Object, Object> option : options.entrySet()) {
-                queryString.add(new NameValuePair("extra.command.option." + option.getKey(),
-                                                  String.valueOf(option.getValue())));
+                parameters.add(new BasicNameValuePair("extra.command.option." + option.getKey(),
+                                                      String.valueOf(option.getValue())));
             }
         }
 
-        return queryString.toArray(new NameValuePair[queryString.size()]);
+        return URLEncodedUtils.format(parameters, HTTP.UTF_8);
     }
 
     /**
