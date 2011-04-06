@@ -179,10 +179,30 @@ public class RundeckInstance implements Serializable {
         queryString.add(new NameValuePair("jobName", jobName));
 
         if (options != null) {
+            StringBuilder argString = new StringBuilder();
             for (Entry<Object, Object> option : options.entrySet()) {
-                queryString.add(new NameValuePair("extra.command.option." + option.getKey(),
-                                                  String.valueOf(option.getValue())));
+                String key = String.valueOf(option.getKey());
+                String value = String.valueOf(option.getValue());
+                if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(value)) {
+                    // for rundeck 1.1, we need 1 argument per option
+                    queryString.add(new NameValuePair("extra.command.option." + key, value));
+
+                    // for rundeck 1.2, we need a single argument (extra.argString) with all options
+                    // format is : "-key1 value1 -key2 'this is value 2 with spaces'"
+                    if (argString.length() > 0) {
+                        argString.append(" ");
+                    }
+                    argString.append("-").append(key);
+                    argString.append(" ");
+                    if (value.indexOf(" ") >= 0
+                        && !(0 == value.indexOf("'") && (value.length() - 1) == value.lastIndexOf("'"))) {
+                        argString.append("'").append(value).append("'");
+                    } else {
+                        argString.append(value);
+                    }
+                }
             }
+            queryString.add(new NameValuePair("extra.argString", argString.toString()));
         }
 
         return queryString.toArray(new NameValuePair[queryString.size()]);
