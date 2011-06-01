@@ -1,15 +1,17 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.TopLevelItem;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Run;
+import hudson.model.TopLevelItem;
 import hudson.model.Run.Artifact;
 import hudson.util.RunList;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import javax.servlet.http.HttpServletResponse;
 import net.sf.json.JSONArray;
 import org.apache.commons.lang.StringUtils;
@@ -50,7 +52,8 @@ public class OptionProvider {
 
     /**
      * Provider for builds of a specific artifact, with the version/date of the build and absolute url of the artifact.<br>
-     * Mandatory parameters : "project" and "artifact" (filename of the artifact)<br>
+     * Mandatory parameters : "project" and either "artifact" (exact filename of the artifact) or "artifactRegex" (java
+     * regex used to match against the filename of the artifact).<br>
      * Optional parameters : "limit" (int), "includeLastStableBuild" (boolean), "includeLastSuccessfulBuild" (boolean),
      * "includeLastBuild" (boolean)
      */
@@ -62,9 +65,21 @@ public class OptionProvider {
             return;
         }
         String artifactName = request.getParameter("artifact");
-        if (StringUtils.isBlank(artifactName)) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'artifact' parameter !");
+        String artifactRegex = request.getParameter("artifactRegex");
+        if (StringUtils.isBlank(artifactName) && StringUtils.isBlank(artifactRegex)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                               "You must provide either a valid 'artifact' or 'artifactRegex' parameter !");
             return;
+        }
+        Pattern artifactPattern = null;
+        if (StringUtils.isNotBlank(artifactRegex)) {
+            try {
+                artifactPattern = Pattern.compile(artifactRegex);
+            } catch (PatternSyntaxException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                                   "Invalid java-regex syntax for the 'artifactPattern' parameter : " + e.getMessage());
+                return;
+            }
         }
 
         // optional parameters
@@ -79,7 +94,7 @@ public class OptionProvider {
         List<Option> options = new ArrayList<OptionProvider.Option>();
         RunList<?> builds = project.getBuilds();
         for (Run<?, ?> build : builds) {
-            Artifact artifact = findArtifact(artifactName, build);
+            Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (artifact != null) {
                 String buildName = "#" + build.getNumber() + " - " + build.getTimestampString2();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
@@ -93,21 +108,21 @@ public class OptionProvider {
         // add optional references to last / lastStable / lastSuccessful builds
         if (Boolean.valueOf(request.getParameter("includeLastStableBuild"))) {
             Run<?, ?> build = project.getLastStableBuild();
-            Artifact artifact = findArtifact(artifactName, build);
+            Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastStableBuild", buildArtifactUrl(build, artifact)));
             }
         }
         if (Boolean.valueOf(request.getParameter("includeLastSuccessfulBuild"))) {
             Run<?, ?> build = project.getLastSuccessfulBuild();
-            Artifact artifact = findArtifact(artifactName, build);
+            Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastSuccessfulBuild", buildArtifactUrl(build, artifact)));
             }
         }
         if (Boolean.valueOf(request.getParameter("includeLastBuild"))) {
             Run<?, ?> build = project.getLastBuild();
-            Artifact artifact = findArtifact(artifactName, build);
+            Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastBuild", buildArtifactUrl(build, artifact)));
             }
@@ -172,19 +187,24 @@ public class OptionProvider {
     }
 
     /**
-     * Find an artifact of the given build, matching the artifactName (filename). If not found, return null.
+     * Find an artifact of the given build, matching the artifactName (filename) or the artifactPattern (java-regex). If
+     * not found, return null.
      * 
-     * @param artifactName filename of the artifact
+     * @param artifactName exact filename of the artifact - may be null
+     * @param artifactPattern to match against the artifact filename - may be null
      * @param build
      * @return an {@link Artifact} instance, or null if not found
      */
-    private Artifact findArtifact(String artifactName, Run<?, ?> build) {
+    private Artifact findArtifact(String artifactName, Pattern artifactPattern, Run<?, ?> build) {
         if (build == null) {
             return null;
         }
 
         for (Artifact artifact : build.getArtifacts()) {
             if (StringUtils.equals(artifactName, artifact.getFileName())) {
+                return artifact;
+            }
+            if (artifactPattern != null && artifactPattern.matcher(artifact.getFileName()).matches()) {
                 return artifact;
             }
         }
