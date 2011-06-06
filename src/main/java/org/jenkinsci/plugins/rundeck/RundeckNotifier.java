@@ -23,22 +23,23 @@ import java.io.IOException;
 import java.util.Properties;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckJobSchedulingException;
-import org.jenkinsci.plugins.rundeck.RundeckInstance.RundeckLoginException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
+import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 /**
- * Jenkins {@link Notifier} that schedule a job execution on RunDeck (via the {@link RundeckInstance})
+ * Jenkins {@link Notifier} that runs a job on RunDeck (via the {@link RundeckInstance})
  * 
  * @author Vincent Behar
  */
 public class RundeckNotifier extends Notifier {
 
-    private final String groupPath;
-
-    private final String jobName;
+    private final Long jobId;
 
     private final String options;
 
@@ -47,9 +48,8 @@ public class RundeckNotifier extends Notifier {
     private final Boolean shouldFailTheBuild;
 
     @DataBoundConstructor
-    public RundeckNotifier(String groupPath, String jobName, String options, String tag, Boolean shouldFailTheBuild) {
-        this.groupPath = groupPath;
-        this.jobName = jobName;
+    public RundeckNotifier(Long jobId, String options, String tag, Boolean shouldFailTheBuild) {
+        this.jobId = jobId;
         this.options = options;
         this.tag = tag;
         this.shouldFailTheBuild = shouldFailTheBuild;
@@ -130,7 +130,7 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * Schedule a job execution on RunDeck
+     * Notify RunDeck : run a job on RunDeck
      * 
      * @param rundeck instance to notify
      * @param build for adding actions
@@ -139,18 +139,19 @@ public class RundeckNotifier extends Notifier {
      */
     private boolean notifyRundeck(RundeckInstance rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
-            String executionUrl = rundeck.scheduleJobExecution(groupPath,
-                                                               jobName,
-                                                               parseOptions(options, build, listener));
-            build.addAction(new RundeckExecutionBuildBadgeAction(executionUrl));
-            listener.getLogger().println("Notification succeeded ! Execution url : " + executionUrl);
+            RundeckExecution execution = rundeck.runJob(jobId, parseOptions(options, build, listener));
+            build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
+            listener.getLogger().println("Notification succeeded ! Execution url : " + execution.getUrl()
+                                         + " (status : " + execution.getStatus() + ")");
             return true;
-        } catch (RundeckLoginException e) {
+        } catch (RundeckApiLoginException e) {
             listener.getLogger().println("Login failed on " + rundeck + " : " + e.getMessage());
             return false;
-        } catch (RundeckJobSchedulingException e) {
-            listener.getLogger().println("Scheduling failed for job " + groupPath + "/" + jobName + " on " + rundeck
-                                         + " : " + e.getMessage());
+        } catch (RundeckApiJobRunException e) {
+            listener.getLogger().println("Failed to run job " + jobId + " on " + rundeck + " : " + e.getMessage());
+            return false;
+        } catch (RundeckApiException e) {
+            listener.getLogger().println("Unable to talk to RunDeck's API on " + rundeck + " : " + e.getMessage());
             return false;
         }
     }
@@ -198,12 +199,8 @@ public class RundeckNotifier extends Notifier {
         return BuildStepMonitor.NONE;
     }
 
-    public String getGroupPath() {
-        return groupPath;
-    }
-
-    public String getJobName() {
-        return jobName;
+    public Long getJobId() {
+        return jobId;
     }
 
     public String getOptions() {
@@ -245,8 +242,7 @@ public class RundeckNotifier extends Notifier {
 
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-            return new RundeckNotifier(formData.getString("groupPath"),
-                                       formData.getString("jobName"),
+            return new RundeckNotifier(formData.getLong("jobId"),
                                        formData.getString("options"),
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldFailTheBuild"));
