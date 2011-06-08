@@ -89,6 +89,52 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
+     * Get the details of a job, identified by the given id.
+     * 
+     * @param jobId - mandatory
+     * @return a {@link RundeckJob} instance (won't be null), with details on the job
+     * @throws RundeckApiException in case of error calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public RundeckJob getJob(Long jobId) throws RundeckApiException, RundeckApiLoginException {
+        if (jobId == null) {
+            throw new IllegalArgumentException("jobId is mandatory to get the details of a job !");
+        }
+
+        HttpClient httpClient = new DefaultHttpClient();
+        try {
+            doLogin(httpClient);
+
+            String jobUrl = url + "/api/1/job/" + jobId;
+
+            HttpResponse response = null;
+            try {
+                response = httpClient.execute(new HttpGet(jobUrl));
+            } catch (IOException e) {
+                throw new RundeckApiException("Failed to get job definition for ID " + jobId + " on url : " + jobUrl, e);
+            }
+            if (response.getStatusLine().getStatusCode() / 100 != 2) {
+                throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for " + jobUrl);
+            }
+
+            // retrieve execution details
+            if (response.getEntity() == null) {
+                throw new RundeckApiException("Empty RunDeck response ! HTTP status line is : "
+                                              + response.getStatusLine());
+            }
+            try {
+                RundeckJob job = RundeckUtils.parseJobDefinition(response.getEntity().getContent());
+                EntityUtils.consume(response.getEntity());
+                return job;
+            } catch (IOException e) {
+                throw new RundeckApiException("Failed to read RunDeck response", e);
+            }
+        } finally {
+            httpClient.getConnectionManager().shutdown();
+        }
+    }
+
+    /**
      * Run a job, identified by the given id.
      * 
      * @param jobId - mandatory

@@ -29,6 +29,17 @@ public class RundeckUtilsTest extends TestCase {
         }
     }
 
+    public void testParseJobDefinition() throws Exception {
+        InputStream input = getClass().getResourceAsStream("job-definition.xml");
+        RundeckJob job = RundeckUtils.parseJobDefinition(input);
+
+        assertEquals(new Long(1), job.getId());
+        assertEquals("job-name", job.getName());
+        assertEquals("job description", job.getDescription());
+        assertEquals("group-name", job.getGroup());
+        assertEquals("project-name", job.getProject());
+    }
+
     public void testParseJobRunResultSuccess() throws Exception {
         InputStream input = getClass().getResourceAsStream("job-run-success.xml");
         RundeckExecution execution = RundeckUtils.parseJobRunResult(input);

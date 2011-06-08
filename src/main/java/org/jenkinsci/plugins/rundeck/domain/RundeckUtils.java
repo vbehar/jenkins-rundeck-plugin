@@ -55,6 +55,34 @@ public class RundeckUtils {
     }
 
     /**
+     * Parse the result of a "job details" action
+     * 
+     * @param response as {@link InputStream}
+     * @return a {@link RundeckJob} instance - won't be null
+     * @throws RundeckApiException in case of error when reading the result
+     */
+    public static RundeckJob parseJobDefinition(InputStream response) throws RundeckApiException {
+        SAXReader reader = new SAXReader();
+        reader.setEncoding("UTF-8");
+        Document document;
+        try {
+            document = reader.read(response);
+        } catch (DocumentException e) {
+            throw new RundeckApiException("Failed to read RunDeck reponse", e);
+        }
+        document.setXMLEncoding("UTF-8");
+        Node jobNode = document.selectSingleNode("joblist/job");
+
+        RundeckJob job = new RundeckJob();
+        job.setId(Long.valueOf(jobNode.valueOf("id")));
+        job.setName(jobNode.valueOf("name"));
+        job.setDescription(jobNode.valueOf("description"));
+        job.setGroup(jobNode.valueOf("group"));
+        job.setProject(jobNode.valueOf("context/project"));
+        return job;
+    }
+
+    /**
      * Parse the result of a "job run" action
      * 
      * @param response as {@link InputStream}

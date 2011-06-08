@@ -1,0 +1,62 @@
+<joblist> 
+  <job> 
+    <id>1</id> 
+    <schedule> 
+      <time hour='20' seconds='0' minute='42' /> 
+      <weekday day='*' /> 
+      <month month='*' /> 
+      <year year='*' /> 
+    </schedule>
+    <loglevel>INFO</loglevel> 
+    <sequence keepgoing='false' strategy='node-first'> 
+      <command> 
+        <exec>echo ${option.opt1} ${option.opt2} ${option.opt3}</exec> 
+      </command> 
+      <command> 
+        <scriptargs>options</scriptargs> 
+        <script><![CDATA[script]]></script> 
+      </command>
+    </sequence> 
+    <description>job description</description> 
+    <name>job-name</name> 
+    <context> 
+      <project>project-name</project> 
+      <options> 
+        <option name='opt1'> 
+          <description>description for opt1</description> 
+        </option> 
+        <option name='opt2' required='true' value='default value'> 
+          <description>description for opt2</description> 
+        </option> 
+        <option name='opt3' enforcedvalues='true' value='value1, value2'> 
+          <description>description for opt3</description> 
+          <multivalued>true</multivalued> 
+          <delimiter>|</delimiter>
+        </option> 
+        <option name='opt4' regex='plop' valuesUrl='http://www.google.com'> 
+          <description>description for opt4</description> 
+        </option> 
+      </options> 
+    </context> 
+    <notification> 
+      <onsuccess> 
+        <email recipients='mail1@toto.com' /> 
+      </onsuccess> 
+      <onfailure> 
+        <email recipients='mail2@toto.com' /> 
+      </onfailure> 
+    </notification>
+    <dispatch> 
+      <threadcount>2</threadcount> 
+      <keepgoing>true</keepgoing> 
+      <excludePrecedence>true</excludePrecedence> 
+    </dispatch> 
+    <nodefilters> 
+      <include> 
+        <tags>tag</tags> 
+        <name>name</name>
+      </include> 
+    </nodefilters>
+    <group>group-name</group> 
+  </job> 
+</joblist>

@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rundeck.domain;
 
 import java.io.Serializable;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Represents a RunDeck job
@@ -20,6 +21,18 @@ public class RundeckJob implements Serializable {
     private String project;
 
     private String description;
+
+    /**
+     * @return the fullname : group + name (exact format is : "group/name")
+     */
+    public String getFullName() {
+        StringBuilder fullName = new StringBuilder();
+        if (StringUtils.isNotBlank(group)) {
+            fullName.append(group).append("/");
+        }
+        fullName.append(name);
+        return fullName.toString();
+    }
 
     public Long getId() {
         return id;

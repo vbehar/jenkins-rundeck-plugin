@@ -4,15 +4,16 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.BuildBadgeAction;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.TopLevelItem;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
+import hudson.model.BuildBadgeAction;
+import hudson.model.BuildListener;
 import hudson.model.Cause;
-import hudson.model.Cause.UpstreamCause;
 import hudson.model.Hudson;
+import hudson.model.Result;
+import hudson.model.TopLevelItem;
+import hudson.model.Cause.UpstreamCause;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -24,10 +25,10 @@ import java.util.Properties;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
 import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -182,6 +183,15 @@ public class RundeckNotifier extends Notifier {
         } catch (IOException e) {
             listener.getLogger().println("Failed to parse options : " + optionsAsString);
             listener.getLogger().println("Error : " + e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public Action getProjectAction(AbstractProject<?, ?> project) {
+        try {
+            return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(), jobId);
+        } catch (RundeckApiException e) {
             return null;
         }
     }
