@@ -51,9 +51,9 @@ public class RundeckUtilsTest extends TestCase {
         }
     }
 
-    public void testParseJobRunResultSuccess() throws Exception {
+    public void testParseExecutionSuccess() throws Exception {
         InputStream input = getClass().getResourceAsStream("job-run-success.xml");
-        RundeckExecution execution = RundeckUtils.parseJobRunResult(input);
+        RundeckExecution execution = RundeckUtils.parseExecution(input);
         RundeckJob job = execution.getJob();
 
         assertEquals(new Long(1), execution.getId());
@@ -72,11 +72,11 @@ public class RundeckUtilsTest extends TestCase {
         assertEquals(null, job.getDescription());
     }
 
-    public void testParseJobRunResultFailure() throws Exception {
+    public void testParseExecutionFailure() throws Exception {
         InputStream input = getClass().getResourceAsStream("job-run-failure.xml");
 
         try {
-            RundeckUtils.parseJobRunResult(input);
+            RundeckUtils.parseExecution(input);
             fail("should have thrown an exception !");
         } catch (RundeckApiJobRunException e) {
             assertEquals("Option 'dir' is required. ", e.getMessage());

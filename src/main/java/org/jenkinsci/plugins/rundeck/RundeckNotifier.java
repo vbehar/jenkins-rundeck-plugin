@@ -30,6 +30,7 @@ import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
 import org.jenkinsci.plugins.rundeck.domain.RundeckJob;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckExecution.ExecutionStatus;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -47,13 +48,17 @@ public class RundeckNotifier extends Notifier {
 
     private final String tag;
 
+    private final Boolean shouldWaitForRundeckJob;
+
     private final Boolean shouldFailTheBuild;
 
     @DataBoundConstructor
-    public RundeckNotifier(Long jobId, String options, String tag, Boolean shouldFailTheBuild) {
+    public RundeckNotifier(Long jobId, String options, String tag, Boolean shouldWaitForRundeckJob,
+            Boolean shouldFailTheBuild) {
         this.jobId = jobId;
         this.options = options;
         this.tag = tag;
+        this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
     }
 
@@ -142,10 +147,35 @@ public class RundeckNotifier extends Notifier {
     private boolean notifyRundeck(RundeckInstance rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
             RundeckExecution execution = rundeck.runJob(jobId, parseOptions(options, build, listener));
-            build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
             listener.getLogger().println("Notification succeeded ! Execution url : " + execution.getUrl()
                                          + " (status : " + execution.getStatus() + ")");
-            return true;
+            build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
+
+            if (shouldWaitForRundeckJob) {
+                listener.getLogger().println("Waiting for RunDeck execution to finish...");
+                while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+                    try {
+                        Thread.sleep(5000);
+                    } catch (InterruptedException e) {
+                        listener.getLogger().println("Oops, interrupted ! " + e.getMessage());
+                        break;
+                    }
+                    execution = rundeck.getExecution(execution.getId());
+                }
+                listener.getLogger().println("RunDeck execution finished, with status : " + execution.getStatus());
+
+                switch (execution.getStatus()) {
+                    case SUCCEEDED:
+                        return true;
+                    case ABORTED:
+                    case FAILED:
+                        return false;
+                    default:
+                        return true;
+                }
+            } else {
+                return true;
+            }
         } catch (RundeckApiLoginException e) {
             listener.getLogger().println("Login failed on " + rundeck + " : " + e.getMessage());
             return false;
@@ -222,6 +252,10 @@ public class RundeckNotifier extends Notifier {
         return tag;
     }
 
+    public Boolean getShouldWaitForRundeckJob() {
+        return shouldWaitForRundeckJob;
+    }
+
     public Boolean getShouldFailTheBuild() {
         return shouldFailTheBuild;
     }
@@ -256,6 +290,7 @@ public class RundeckNotifier extends Notifier {
             return new RundeckNotifier(formData.getLong("jobId"),
                                        formData.getString("options"),
                                        formData.getString("tag"),
+                                       formData.getBoolean("shouldWaitForRundeckJob"),
                                        formData.getBoolean("shouldFailTheBuild"));
         }
 

@@ -9,6 +9,9 @@
   <f:entry title="Tag (optional)" field="tag">
     <f:textbox />
   </f:entry>
+  <f:entry title="Should wait for RunDeck job to finish ?" field="shouldWaitForRundeckJob">
+    <f:checkbox />
+  </f:entry>
   <f:entry title="Should fail the build ?" field="shouldFailTheBuild">
     <f:checkbox />
   </f:entry>

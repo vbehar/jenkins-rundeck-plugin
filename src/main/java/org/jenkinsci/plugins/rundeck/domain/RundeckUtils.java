@@ -10,7 +10,6 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckExecution.ExecutionStatus;
 
 /**
@@ -89,15 +88,13 @@ public class RundeckUtils {
     }
 
     /**
-     * Parse the result of a "job run" action
+     * Parse the result of a job execution
      * 
      * @param response as {@link InputStream}
      * @return a {@link RundeckExecution} instance - won't be null
-     * @throws RundeckApiJobRunException in case of error when running the job
      * @throws RundeckApiException in case of error when reading the result
      */
-    public static RundeckExecution parseJobRunResult(InputStream response) throws RundeckApiException,
-            RundeckApiJobRunException {
+    public static RundeckExecution parseExecution(InputStream response) throws RundeckApiException {
         SAXReader reader = new SAXReader();
         reader.setEncoding("UTF-8");
         Document document;
@@ -110,7 +107,7 @@ public class RundeckUtils {
 
         Boolean success = Boolean.valueOf(document.valueOf("result/@success"));
         if (!success) {
-            throw new RundeckApiJobRunException(document.valueOf("result/error/message"));
+            throw new RundeckApiException(document.valueOf("result/error/message"));
         }
 
         @SuppressWarnings("unchecked")

@@ -144,6 +144,54 @@ public class RundeckInstance implements Serializable {
     }
 
     /**
+     * Get the details of a job execution, identified by the given id.
+     * 
+     * @param executionId - mandatory
+     * @return a {@link RundeckExecution} instance (won't be null), with details on the execution
+     * @throws RundeckApiException in case of error calling the API
+     * @throws RundeckApiLoginException if the login failed
+     */
+    public RundeckExecution getExecution(Long executionId) throws RundeckApiException, RundeckApiLoginException {
+        if (executionId == null) {
+            throw new IllegalArgumentException("executionId is mandatory to get the details of an execution !");
+        }
+
+        HttpClient httpClient = instantiateHttpClient();
+        try {
+            doLogin(httpClient);
+
+            String executionUrl = url + "/api/1/execution/" + executionId;
+
+            HttpResponse response = null;
+            try {
+                response = httpClient.execute(new HttpGet(executionUrl));
+            } catch (IOException e) {
+                throw new RundeckApiException("Failed to get execution definition for ID " + executionId + " on url : "
+                                              + executionUrl, e);
+            }
+            if (response.getStatusLine().getStatusCode() / 100 != 2) {
+                throw new RundeckApiException("Invalid HTTP response '" + response.getStatusLine() + "' for "
+                                              + executionUrl);
+            }
+
+            // retrieve execution details
+            if (response.getEntity() == null) {
+                throw new RundeckApiException("Empty RunDeck response ! HTTP status line is : "
+                                              + response.getStatusLine());
+            }
+            try {
+                RundeckExecution execution = RundeckUtils.parseExecution(response.getEntity().getContent());
+                EntityUtils.consume(response.getEntity());
+                return execution;
+            } catch (IOException e) {
+                throw new RundeckApiException("Failed to read RunDeck response", e);
+            }
+        } finally {
+            httpClient.getConnectionManager().shutdown();
+        }
+    }
+
+    /**
      * Run a job, identified by the given id.
      * 
      * @param jobId - mandatory
@@ -193,7 +241,7 @@ public class RundeckInstance implements Serializable {
                                                     + response.getStatusLine());
             }
             try {
-                RundeckExecution execution = RundeckUtils.parseJobRunResult(response.getEntity().getContent());
+                RundeckExecution execution = RundeckUtils.parseExecution(response.getEntity().getContent());
                 EntityUtils.consume(response.getEntity());
                 return execution;
             } catch (IOException e) {
