@@ -40,6 +40,17 @@ public class RundeckUtilsTest extends TestCase {
         assertEquals("project-name", job.getProject());
     }
 
+    public void testParseJobDefinitionUnknown() throws Exception {
+        InputStream input = getClass().getResourceAsStream("job-definition-unknown.xml");
+
+        try {
+            RundeckUtils.parseJobDefinition(input);
+            fail("should have thrown an exception !");
+        } catch (RundeckApiException e) {
+            assertEquals("Job ID does not exist: 42", e.getMessage());
+        }
+    }
+
     public void testParseJobRunResultSuccess() throws Exception {
         InputStream input = getClass().getResourceAsStream("job-run-success.xml");
         RundeckExecution execution = RundeckUtils.parseJobRunResult(input);

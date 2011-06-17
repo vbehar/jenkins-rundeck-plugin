@@ -71,6 +71,12 @@ public class RundeckUtils {
             throw new RundeckApiException("Failed to read RunDeck reponse", e);
         }
         document.setXMLEncoding("UTF-8");
+
+        Boolean failure = Boolean.valueOf(document.valueOf("result/@error"));
+        if (failure) {
+            throw new RundeckApiException(document.valueOf("result/error/message"));
+        }
+
         Node jobNode = document.selectSingleNode("joblist/job");
 
         RundeckJob job = new RundeckJob();
