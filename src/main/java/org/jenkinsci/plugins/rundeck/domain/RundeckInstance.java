@@ -4,6 +4,12 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -15,6 +21,9 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HTTP;
@@ -62,7 +71,7 @@ public class RundeckInstance implements Serializable {
      * @return true if this RunDeck instance is alive, false otherwise
      */
     public boolean isAlive() {
-        HttpClient httpClient = new DefaultHttpClient();
+        HttpClient httpClient = instantiateHttpClient();
         try {
             HttpResponse response = httpClient.execute(new HttpGet(url));
             return response.getStatusLine().getStatusCode() / 100 == 2;
@@ -77,7 +86,7 @@ public class RundeckInstance implements Serializable {
      * @return true if the credentials (login/password) are valid, false otherwise
      */
     public boolean isLoginValid() {
-        HttpClient httpClient = new DefaultHttpClient();
+        HttpClient httpClient = instantiateHttpClient();
         try {
             doLogin(httpClient);
             return true;
@@ -101,7 +110,7 @@ public class RundeckInstance implements Serializable {
             throw new IllegalArgumentException("jobId is mandatory to get the details of a job !");
         }
 
-        HttpClient httpClient = new DefaultHttpClient();
+        HttpClient httpClient = instantiateHttpClient();
         try {
             doLogin(httpClient);
 
@@ -150,7 +159,7 @@ public class RundeckInstance implements Serializable {
             throw new IllegalArgumentException("jobId is mandatory to run a job !");
         }
 
-        HttpClient httpClient = new DefaultHttpClient();
+        HttpClient httpClient = instantiateHttpClient();
         try {
             doLogin(httpClient);
 
@@ -251,6 +260,35 @@ public class RundeckInstance implements Serializable {
             }
             break;
         }
+    }
+
+    /**
+     * Instantiate a new {@link HttpClient} instance, configured to accept all SSL certificates
+     * 
+     * @return an {@link HttpClient} instance - won't be null
+     */
+    private HttpClient instantiateHttpClient() {
+        SSLSocketFactory socketFactory = null;
+        try {
+            socketFactory = new SSLSocketFactory(new TrustStrategy() {
+
+                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    return true;
+                }
+            }, SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        } catch (KeyManagementException e) {
+            throw new RuntimeException(e);
+        } catch (UnrecoverableKeyException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        } catch (KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
+
+        HttpClient httpClient = new DefaultHttpClient();
+        httpClient.getConnectionManager().getSchemeRegistry().register(new Scheme("https", 443, socketFactory));
+        return httpClient;
     }
 
     public String getUrl() {
