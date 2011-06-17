@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.util.Date;
 import java.util.Properties;
 import junit.framework.TestCase;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckExecution.ExecutionStatus;
 
 /**
@@ -78,7 +77,7 @@ public class RundeckUtilsTest extends TestCase {
         try {
             RundeckUtils.parseExecution(input);
             fail("should have thrown an exception !");
-        } catch (RundeckApiJobRunException e) {
+        } catch (RundeckApiException e) {
             assertEquals("Option 'dir' is required. ", e.getMessage());
         }
     }

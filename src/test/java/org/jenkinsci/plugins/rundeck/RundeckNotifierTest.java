@@ -4,10 +4,10 @@ import hudson.FilePath;
 import hudson.model.Action;
 import hudson.model.Build;
 import hudson.model.FreeStyleBuild;
-import hudson.model.Result;
-import hudson.model.Cause.UpstreamCause;
 import hudson.model.FreeStyleProject;
+import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.Cause.UpstreamCause;
 import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
@@ -16,14 +16,14 @@ import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckExecutionBuildBadgeAction;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
 import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
+import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
 import org.junit.Assert;
-import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
+import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 
@@ -35,7 +35,7 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
 public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testCommitWithoutTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), "", false);
+        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), "", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -61,7 +61,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testStandardCommitWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false);
+        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -85,7 +85,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false);
+        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -111,7 +111,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", true);
+        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false, true);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
 
             private static final long serialVersionUID = 1L;
@@ -148,7 +148,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testExpandEnvVarsInOptions() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), null, true);
+        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), null, false, true);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
 
             private static final long serialVersionUID = 1L;
@@ -179,7 +179,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testUpstreamBuildWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false);
+        RundeckNotifier notifier = new RundeckNotifier(1L, null, "#deploy", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject upstream = createFreeStyleProject("upstream");
@@ -214,7 +214,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testFailedBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), "", false);
+        RundeckNotifier notifier = new RundeckNotifier(1L, createOptions(), "", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
 
         FreeStyleProject project = createFreeStyleProject();
