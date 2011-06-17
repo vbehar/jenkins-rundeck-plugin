@@ -27,6 +27,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
 import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
+import org.jenkinsci.plugins.rundeck.domain.RundeckJob;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
 import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -272,6 +273,15 @@ public class RundeckNotifier extends Notifier {
                 return FormValidation.error("Your credentials for the user %s are not valid !", rundeck.getLogin());
             }
             return FormValidation.ok("Your RunDeck instance is alive, and your credentials are valid !");
+        }
+
+        public FormValidation doCheckJob(@QueryParameter("jobId") final Long jobId) {
+            try {
+                RundeckJob job = rundeckInstance.getJob(jobId);
+                return FormValidation.ok("Your RunDeck job is : %s (project: %s)", job.getFullName(), job.getProject());
+            } catch (RundeckApiException e) {
+                return FormValidation.error("Failed to get job details : %s", e.getMessage());
+            }
         }
 
         @Override

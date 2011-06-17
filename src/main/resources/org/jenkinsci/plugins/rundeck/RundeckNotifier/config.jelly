@@ -2,6 +2,7 @@
   <f:entry title="Job ID" field="jobId">
     <f:textbox />
   </f:entry>
+  <f:validateButton title="Check Job" progress="Checking..." method="checkJob" with="jobId" />
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
   </f:entry>
