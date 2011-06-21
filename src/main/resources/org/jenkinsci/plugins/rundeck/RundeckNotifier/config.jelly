@@ -6,10 +6,10 @@
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
   </f:entry>
-  <f:entry title="Tag (optional)" field="tag">
+  <f:entry title="SCM Tag (optional)" field="tag">
     <f:textbox />
   </f:entry>
-  <f:entry title="Should wait for RunDeck job to finish ?" field="shouldWaitForRundeckJob">
+  <f:entry title="Wait for RunDeck job to finish ?" field="shouldWaitForRundeckJob">
     <f:checkbox />
   </f:entry>
   <f:entry title="Should fail the build ?" field="shouldFailTheBuild">
