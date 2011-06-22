@@ -151,7 +151,7 @@ public class RundeckNotifier extends Notifier {
                                          + " (status : " + execution.getStatus() + ")");
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
 
-            if (shouldWaitForRundeckJob) {
+            if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
                 listener.getLogger().println("Waiting for RunDeck execution to finish...");
                 while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
                     try {
