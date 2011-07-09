@@ -4,28 +4,28 @@ import hudson.FilePath;
 import hudson.model.Action;
 import hudson.model.Build;
 import hudson.model.FreeStyleBuild;
-import hudson.model.FreeStyleProject;
 import hudson.model.Result;
-import hudson.model.Run;
 import hudson.model.Cause.UpstreamCause;
+import hudson.model.FreeStyleProject;
+import hudson.model.Run;
 import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Date;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckExecutionBuildBadgeAction;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
-import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
-import org.jenkinsci.plugins.rundeck.domain.RundeckJob;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckExecution.ExecutionStatus;
 import org.junit.Assert;
+import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
-import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
+import org.rundeck.api.RundeckApiException;
+import org.rundeck.api.RundeckClient;
+import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
+import org.rundeck.api.domain.RundeckJob;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 
@@ -38,7 +38,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testCommitWithoutTag() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), "", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -64,7 +64,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testStandardCommitWithTag() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -88,7 +88,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -114,14 +114,13 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", null, "#deploy", false, true);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient() {
 
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
-                    RundeckApiLoginException, RundeckApiJobRunException {
-                throw new RundeckApiJobRunException("Fake error for testing");
+            public RundeckExecution triggerJob(String jobId, Properties options) throws RundeckApiException {
+                throw new RundeckApiException("Fake error for testing");
             }
 
         });
@@ -145,24 +144,23 @@ public class RundeckNotifierTest extends HudsonTestCase {
         s = FileUtils.readFileToString(build.getLogFile());
         assertTrue(s.contains("Notifying RunDeck..."));
         assertTrue(s.contains("#deploy"));
-        assertTrue(s.contains("Failed to run job"));
+        assertTrue(s.contains("Error while talking to RunDeck's API"));
         assertTrue(s.contains("Fake error for testing"));
     }
 
     public void testExpandEnvVarsInOptions() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), null, false, true);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient() {
 
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
-                    RundeckApiLoginException, RundeckApiJobRunException {
+            public RundeckExecution triggerJob(String jobId, Properties options) {
                 Assert.assertEquals(4, options.size());
                 Assert.assertEquals("value 1", options.getProperty("option1"));
                 Assert.assertEquals("1", options.getProperty("buildNumber"));
                 Assert.assertEquals("my project name", options.getProperty("jobName"));
-                return super.runJob(jobId, options);
+                return super.triggerJob(jobId, options);
             }
 
         });
@@ -182,7 +180,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testUpstreamBuildWithTag() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject upstream = createFreeStyleProject("upstream");
         upstream.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -217,7 +215,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testFailedBuild() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), "", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance());
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.FAILURE));
@@ -241,19 +239,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testWaitForRundeckJob() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), "", true, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckInstance() {
-
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
-                    RundeckApiLoginException, RundeckApiJobRunException {
-                RundeckExecution execution = new RundeckExecution();
-                execution.setStatus(ExecutionStatus.SUCCEEDED);
-                return execution;
-            }
-
-        });
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -267,7 +253,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Notifying RunDeck..."));
         assertTrue(s.contains("Notification succeeded !"));
         assertTrue(s.contains("Waiting for RunDeck execution to finish..."));
-        assertTrue(s.contains("RunDeck execution finished, with status : SUCCEEDED"));
+        assertTrue(s.contains("RunDeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
     }
 
     private String createOptions() {
@@ -323,50 +309,55 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     /**
-     * Just a mock {@link RundeckInstance} which is always successful
+     * Just a mock {@link RundeckClient} which is always successful
      */
-    private static class MockRundeckInstance extends RundeckInstance {
+    private static class MockRundeckClient extends RundeckClient {
 
         private static final long serialVersionUID = 1L;
 
-        public MockRundeckInstance() {
-            super("", "", "");
+        public MockRundeckClient() {
+            super("http://localhost:4440", "admin", "admin");
         }
 
         @Override
-        public boolean isConfigurationValid() {
-            return true;
+        public void ping() {
+            // successful
         }
 
         @Override
-        public boolean isAlive() {
-            return true;
+        public void testCredentials() {
+            // successful
         }
 
         @Override
-        public boolean isLoginValid() {
-            return true;
+        public RundeckExecution triggerJob(String jobId, Properties options) {
+            return initExecution(ExecutionStatus.RUNNING);
         }
 
         @Override
-        public RundeckExecution runJob(String jobId, Properties options) throws RundeckApiException,
-                RundeckApiLoginException, RundeckApiJobRunException {
-            RundeckExecution execution = new RundeckExecution();
-            execution.setStatus(ExecutionStatus.RUNNING);
-            return execution;
+        public RundeckExecution getExecution(Long executionId) {
+            return initExecution(ExecutionStatus.SUCCEEDED);
         }
 
         @Override
-        public RundeckExecution getExecution(Long executionId) throws RundeckApiException, RundeckApiLoginException {
-            RundeckExecution execution = new RundeckExecution();
-            execution.setStatus(ExecutionStatus.SUCCEEDED);
-            return execution;
-        }
-
-        @Override
-        public RundeckJob getJob(String jobId) throws RundeckApiException, RundeckApiLoginException {
+        public RundeckJob getJob(String jobId) {
             RundeckJob job = new RundeckJob();
             return job;
+        }
+
+        private RundeckExecution initExecution(ExecutionStatus status) {
+            RundeckExecution execution = new RundeckExecution();
+            execution.setId(1L);
+            execution.setUrl("http://localhost:4440/execution/follow/1");
+            execution.setStatus(status);
+            execution.setStartedAt(new Date(1310159014640L));
+            if (ExecutionStatus.SUCCEEDED.equals(status)) {
+                Date endedAt = execution.getStartedAt();
+                endedAt = DateUtils.addMinutes(endedAt, 3);
+                endedAt = DateUtils.addSeconds(endedAt, 27);
+                execution.setEndedAt(endedAt);
+            }
+            return execution;
         }
 
     }

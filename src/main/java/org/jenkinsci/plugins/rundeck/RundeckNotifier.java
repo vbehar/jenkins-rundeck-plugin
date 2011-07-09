@@ -4,16 +4,16 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildBadgeAction;
 import hudson.model.BuildListener;
-import hudson.model.Cause;
-import hudson.model.Hudson;
 import hudson.model.Result;
 import hudson.model.TopLevelItem;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Cause;
 import hudson.model.Cause.UpstreamCause;
+import hudson.model.Hudson;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -24,19 +24,18 @@ import java.io.IOException;
 import java.util.Properties;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckExecution;
-import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
-import org.jenkinsci.plugins.rundeck.domain.RundeckJob;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiJobRunException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException.RundeckApiLoginException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckExecution.ExecutionStatus;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.rundeck.api.RundeckApiException;
+import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
+import org.rundeck.api.RundeckClient;
+import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
+import org.rundeck.api.domain.RundeckJob;
 
 /**
- * Jenkins {@link Notifier} that runs a job on RunDeck (via the {@link RundeckInstance})
+ * Jenkins {@link Notifier} that runs a job on RunDeck (via the {@link RundeckClient})
  * 
  * @author Vincent Behar
  */
@@ -69,13 +68,15 @@ public class RundeckNotifier extends Notifier {
             return true;
         }
 
-        RundeckInstance rundeck = getDescriptor().getRundeckInstance();
+        RundeckClient rundeck = getDescriptor().getRundeckInstance();
 
-        if (rundeck == null || !rundeck.isConfigurationValid()) {
-            listener.getLogger().println("RunDeck configuration is not valid ! " + rundeck);
+        if (rundeck == null) {
+            listener.getLogger().println("RunDeck configuration is not valid !");
             return false;
         }
-        if (!rundeck.isAlive()) {
+        try {
+            rundeck.ping();
+        } catch (RundeckApiException e) {
             listener.getLogger().println("RunDeck is not running !");
             return false;
         }
@@ -144,11 +145,11 @@ public class RundeckNotifier extends Notifier {
      * @param listener for logging the result
      * @return true if successful, false otherwise
      */
-    private boolean notifyRundeck(RundeckInstance rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
+    private boolean notifyRundeck(RundeckClient rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
-            RundeckExecution execution = rundeck.runJob(jobId, parseOptions(options, build, listener));
-            listener.getLogger().println("Notification succeeded ! Execution url : " + execution.getUrl()
-                                         + " (status : " + execution.getStatus() + ")");
+            RundeckExecution execution = rundeck.triggerJob(jobId, parseOptions(options, build, listener));
+            listener.getLogger().println("Notification succeeded ! Execution #" + execution.getId() + ", at "
+                                         + execution.getUrl() + " (status : " + execution.getStatus() + ")");
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
@@ -162,7 +163,8 @@ public class RundeckNotifier extends Notifier {
                     }
                     execution = rundeck.getExecution(execution.getId());
                 }
-                listener.getLogger().println("RunDeck execution finished, with status : " + execution.getStatus());
+                listener.getLogger().println("RunDeck execution #" + execution.getId() + " finished in "
+                                             + execution.getDuration() + ", with status : " + execution.getStatus());
 
                 switch (execution.getStatus()) {
                     case SUCCEEDED:
@@ -177,13 +179,14 @@ public class RundeckNotifier extends Notifier {
                 return true;
             }
         } catch (RundeckApiLoginException e) {
-            listener.getLogger().println("Login failed on " + rundeck + " : " + e.getMessage());
-            return false;
-        } catch (RundeckApiJobRunException e) {
-            listener.getLogger().println("Failed to run job " + jobId + " on " + rundeck + " : " + e.getMessage());
+            listener.getLogger().println("Login failed on " + rundeck.getUrl() + " : " + e.getMessage());
             return false;
         } catch (RundeckApiException e) {
-            listener.getLogger().println("Unable to talk to RunDeck's API on " + rundeck + " : " + e.getMessage());
+            listener.getLogger().println("Error while talking to RunDeck's API at " + rundeck.getUrl() + " : "
+                                         + e.getMessage());
+            return false;
+        } catch (IllegalArgumentException e) {
+            listener.getLogger().println("Configuration error : " + e.getMessage());
             return false;
         }
     }
@@ -268,7 +271,7 @@ public class RundeckNotifier extends Notifier {
     @Extension(ordinal = 1000)
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
 
-        private RundeckInstance rundeckInstance;
+        private RundeckClient rundeckInstance;
 
         public RundeckDescriptor() {
             super();
@@ -277,9 +280,13 @@ public class RundeckNotifier extends Notifier {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            rundeckInstance = new RundeckInstance(json.getString("url"),
-                                                  json.getString("login"),
-                                                  json.getString("password"));
+            try {
+                rundeckInstance = new RundeckClient(json.getString("url"),
+                                                    json.getString("login"),
+                                                    json.getString("password"));
+            } catch (IllegalArgumentException e) {
+                rundeckInstance = null;
+            }
 
             save();
             return super.configure(req, json);
@@ -297,24 +304,35 @@ public class RundeckNotifier extends Notifier {
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                 @QueryParameter("rundeck.login") final String login,
                 @QueryParameter("rundeck.password") final String password) {
-            RundeckInstance rundeck = new RundeckInstance(url, login, password);
-            if (!rundeck.isConfigurationValid()) {
+            RundeckClient rundeck = null;
+            try {
+                rundeck = new RundeckClient(url, login, password);
+            } catch (IllegalArgumentException e) {
                 return FormValidation.error("RunDeck configuration is not valid !");
             }
-            if (!rundeck.isAlive()) {
+            try {
+                rundeck.ping();
+            } catch (RundeckApiException e) {
                 return FormValidation.error("We couldn't find a live RunDeck instance at %s", rundeck.getUrl());
             }
-            if (!rundeck.isLoginValid()) {
+            try {
+                rundeck.testCredentials();
+            } catch (RundeckApiLoginException e) {
                 return FormValidation.error("Your credentials for the user %s are not valid !", rundeck.getLogin());
             }
             return FormValidation.ok("Your RunDeck instance is alive, and your credentials are valid !");
         }
 
         public FormValidation doCheckJob(@QueryParameter("jobId") final String jobId) {
+            if (rundeckInstance == null) {
+                return FormValidation.error("RunDeck global configuration is not valid !");
+            }
             try {
                 RundeckJob job = rundeckInstance.getJob(jobId);
                 return FormValidation.ok("Your RunDeck job is : %s (project: %s)", job.getFullName(), job.getProject());
             } catch (RundeckApiException e) {
+                return FormValidation.error("Failed to get job details : %s", e.getMessage());
+            } catch (IllegalArgumentException e) {
                 return FormValidation.error("Failed to get job details : %s", e.getMessage());
             }
         }
@@ -329,11 +347,11 @@ public class RundeckNotifier extends Notifier {
             return "RunDeck";
         }
 
-        public RundeckInstance getRundeckInstance() {
+        public RundeckClient getRundeckInstance() {
             return rundeckInstance;
         }
 
-        public void setRundeckInstance(RundeckInstance rundeckInstance) {
+        public void setRundeckInstance(RundeckClient rundeckInstance) {
             this.rundeckInstance = rundeckInstance;
         }
     }

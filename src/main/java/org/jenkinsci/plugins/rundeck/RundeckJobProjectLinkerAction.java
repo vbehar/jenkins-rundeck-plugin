@@ -2,10 +2,10 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.model.Action;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.domain.RundeckApiException;
-import org.jenkinsci.plugins.rundeck.domain.RundeckInstance;
-import org.jenkinsci.plugins.rundeck.domain.RundeckJob;
 import org.kohsuke.stapler.export.Exported;
+import org.rundeck.api.RundeckApiException;
+import org.rundeck.api.RundeckClient;
+import org.rundeck.api.domain.RundeckJob;
 
 /**
  * {@link Action} used to display a RunDeck icon with a link to the RunDeck job page, and some information about the
@@ -15,7 +15,7 @@ import org.kohsuke.stapler.export.Exported;
  */
 public class RundeckJobProjectLinkerAction implements Action {
 
-    private final RundeckInstance rundeck;
+    private final RundeckClient rundeck;
 
     private final RundeckJob rundeckJob;
 
@@ -24,11 +24,11 @@ public class RundeckJobProjectLinkerAction implements Action {
     /**
      * Load the RunDeck job details (name, description, and so on) using the RunDeck API.
      * 
-     * @param rundeck instance used for talking to the RunDeck API
+     * @param rundeck client used for talking to the RunDeck API
      * @param rundeckJobId ID of the RunDeck job
-     * @throws RundeckApiException in case of error while load the job details from RunDeck API
+     * @throws RundeckApiException in case of error while loading the job details from RunDeck API
      */
-    public RundeckJobProjectLinkerAction(RundeckInstance rundeck, String rundeckJobId) throws RundeckApiException {
+    public RundeckJobProjectLinkerAction(RundeckClient rundeck, String rundeckJobId) throws RundeckApiException {
         this.rundeck = rundeck;
         this.rundeckJob = rundeck.getJob(rundeckJobId);
         this.rundeckJobUrl = buildRundeckJobUrl();
