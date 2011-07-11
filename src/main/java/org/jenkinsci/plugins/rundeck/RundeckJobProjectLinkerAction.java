@@ -27,8 +27,13 @@ public class RundeckJobProjectLinkerAction implements Action {
      * @param rundeck client used for talking to the RunDeck API
      * @param rundeckJobId ID of the RunDeck job
      * @throws RundeckApiException in case of error while loading the job details from RunDeck API
+     * @throws IllegalArgumentException if rundeck or rundeckJobId is null
      */
-    public RundeckJobProjectLinkerAction(RundeckClient rundeck, String rundeckJobId) throws RundeckApiException {
+    public RundeckJobProjectLinkerAction(RundeckClient rundeck, String rundeckJobId) throws RundeckApiException,
+            IllegalArgumentException {
+        if (rundeck == null) {
+            throw new IllegalArgumentException("rundeckClient should not be null !");
+        }
         this.rundeck = rundeck;
         this.rundeckJob = rundeck.getJob(rundeckJobId);
         this.rundeckJobUrl = buildRundeckJobUrl();

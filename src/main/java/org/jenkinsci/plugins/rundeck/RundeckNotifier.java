@@ -227,6 +227,8 @@ public class RundeckNotifier extends Notifier {
             return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(), jobId);
         } catch (RundeckApiException e) {
             return null;
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 
