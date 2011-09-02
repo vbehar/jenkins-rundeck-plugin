@@ -14,6 +14,7 @@ import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.Cause.UpstreamCause;
 import hudson.model.Hudson;
+import hudson.model.Run.Artifact;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
@@ -22,6 +23,8 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -40,6 +43,9 @@ import org.rundeck.api.domain.RundeckJob;
  * @author Vincent Behar
  */
 public class RundeckNotifier extends Notifier {
+
+    /** Pattern used for the token expansion of $ARTIFACT_NAME{regex} */
+    private static final transient Pattern TOKEN_ARTIFACT_NAME_PATTERN = Pattern.compile("\\$ARTIFACT_NAME\\{(.+)\\}");
 
     private final String jobId;
 
@@ -204,12 +210,30 @@ public class RundeckNotifier extends Notifier {
             return new Properties();
         }
 
-        // try to expand env vars
+        // try to expand jenkins env vars
         try {
             EnvVars envVars = build.getEnvironment(listener);
             optionsAsString = Util.replaceMacro(optionsAsString, envVars);
         } catch (Exception e) {
             listener.getLogger().println("Failed to expand environment variables : " + e.getMessage());
+        }
+
+        // expand our custom tokens : $ARTIFACT_NAME{regex} => name of the first matching artifact found
+        // http://groups.google.com/group/rundeck-discuss/browse_thread/thread/94a6833b84fdc10b
+        Matcher matcher = TOKEN_ARTIFACT_NAME_PATTERN.matcher(optionsAsString);
+        int idx = 0;
+        while (matcher.find(idx)) {
+            idx = matcher.end();
+            String regex = matcher.group(1);
+            Pattern pattern = Pattern.compile(regex);
+            for (@SuppressWarnings("rawtypes")
+            Artifact artifact : build.getArtifacts()) {
+                if (pattern.matcher(artifact.getFileName()).matches()) {
+                    optionsAsString = StringUtils.replace(optionsAsString, matcher.group(0), artifact.getFileName());
+                    idx = matcher.start() + artifact.getFileName().length();
+                    break;
+                }
+            }
         }
 
         try {
