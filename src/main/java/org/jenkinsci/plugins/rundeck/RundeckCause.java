@@ -26,7 +26,23 @@ public class RundeckCause extends Cause {
 
     @Override
     public String getShortDescription() {
-        return "Started by a RunDeck Notification";
+        StringBuilder description = new StringBuilder();
+        if (execution != null) {
+            description.append("Started by <a href=\"");
+            description.append(execution.getUrl());
+            description.append("\">RunDeck Execution #");
+            description.append(execution.getId());
+            description.append("</a>");
+            if (execution.getJob() != null) {
+                description.append(" [");
+                description.append(execution.getJob().getProject());
+                description.append("] ");
+                description.append(execution.getJob().getFullName());
+            }
+        } else {
+            description.append("Started by a RunDeck Notification");
+        }
+        return description.toString();
     }
 
     @Override
@@ -51,18 +67,6 @@ public class RundeckCause extends Cause {
             this.execution = execution;
         }
 
-        public String getIconFileName() {
-            return null;
-        }
-
-        public String getDisplayName() {
-            return null;
-        }
-
-        public String getUrlName() {
-            return null;
-        }
-
         public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars env) {
             if (execution != null) {
                 if (execution.getJob() != null) {
@@ -85,6 +89,18 @@ public class RundeckCause extends Cause {
                 env.put("RDECK_EXEC_URL", String.valueOf(execution.getUrl()));
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
             }
+        }
+
+        public String getIconFileName() {
+            return null;
+        }
+
+        public String getDisplayName() {
+            return null;
+        }
+
+        public String getUrlName() {
+            return null;
         }
     }
 
