@@ -51,6 +51,36 @@ public class RundeckCause extends Cause {
         build.addAction(new RundeckExecutionEnvironmentContributingAction(execution));
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((execution == null) ? 0 : execution.hashCode());
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        RundeckCause other = (RundeckCause) obj;
+        if (execution == null) {
+            if (other.execution != null)
+                return false;
+        } else if (!execution.equals(other.execution))
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "RundeckCause [execution=" + execution + "]";
+    }
+
     /**
      * {@link EnvironmentContributingAction} used to make information about the {@link RundeckExecution} available to
      * the build (as environment variables)
