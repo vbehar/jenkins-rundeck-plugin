@@ -121,16 +121,16 @@ public class RundeckCause extends Cause {
             }
         }
 
-        public String getIconFileName() {
-            return null;
+        public String getDisplayName() {
+            return execution != null ? "Started by RunDeck Execution #" + execution.getId() : null;
         }
 
-        public String getDisplayName() {
-            return null;
+        public String getIconFileName() {
+            return execution != null ? "/plugin/rundeck/images/rundeck_24x24.png" : null;
         }
 
         public String getUrlName() {
-            return null;
+            return execution != null ? execution.getUrl() : null;
         }
     }
 
