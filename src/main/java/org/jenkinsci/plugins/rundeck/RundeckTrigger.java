@@ -5,7 +5,11 @@ import hudson.model.Item;
 import hudson.model.AbstractProject;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
+import java.util.ArrayList;
+import java.util.List;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.api.domain.RundeckExecution;
 
 /**
@@ -15,12 +19,51 @@ import org.rundeck.api.domain.RundeckExecution;
  */
 public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
+    private final Boolean filterJobs;
+
+    private final List<RundeckJobIdentifier> jobsIdentifiers;
+
     @DataBoundConstructor
-    public RundeckTrigger() {
+    public RundeckTrigger(Boolean filterJobs, List<RundeckJobIdentifier> jobsIdentifiers) {
+        this.filterJobs = filterJobs != null ? filterJobs : false;
+        this.jobsIdentifiers = jobsIdentifiers != null ? jobsIdentifiers : new ArrayList<RundeckJobIdentifier>();
     }
 
+    /**
+     * Called when we receive a RunDeck notification
+     * 
+     * @param execution at the origin of the notification
+     */
     public void onNotification(RundeckExecution execution) {
-        job.scheduleBuild(new RundeckCause(execution));
+        if (shouldScheduleBuild(execution)) {
+            job.scheduleBuild(new RundeckCause(execution));
+        }
+    }
+
+    /**
+     * Filter notifications based on the {@link RundeckExecution} and the trigger configuration
+     * 
+     * @param execution at the origin of the notification
+     * @return true if we should schedule a new build, false otherwise
+     */
+    private boolean shouldScheduleBuild(RundeckExecution execution) {
+        if (!filterJobs) {
+            return true;
+        }
+        for (RundeckJobIdentifier identifier : jobsIdentifiers) {
+            if (identifier.matches(execution.getJob())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public Boolean getFilterJobs() {
+        return filterJobs;
+    }
+
+    public List<RundeckJobIdentifier> getJobsIdentifiers() {
+        return jobsIdentifiers;
     }
 
     @Override
@@ -37,6 +80,13 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         }
 
         @Override
+        public Trigger<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            return new RundeckTrigger(formData.getJSONObject("filterJobs").getBoolean("value"),
+                                      req.bindJSONToList(RundeckJobIdentifier.class,
+                                                         formData.getJSONObject("filterJobs").get("jobsIdentifiers")));
+        }
+
+        @Override
         public boolean isApplicable(Item item) {
             return item instanceof AbstractProject;
         }
@@ -45,7 +95,5 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         public String getDisplayName() {
             return "Build when we receive a notification from RunDeck";
         }
-
     }
-
 }

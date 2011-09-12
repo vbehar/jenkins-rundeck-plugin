@@ -1,0 +1,27 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <f:nested>
+    <table style="width:100%">
+      <f:radioBlock title="Build for a notification from any RunDeck job" name="filterJobs"
+                    value="false" checked="${!instance.getFilterJobs()}"
+                    help="${descriptor.getHelpFile('noFilterJobs')}" />
+      <f:radioBlock title="Build only for a notification from one of the following RunDeck jobs :" name="filterJobs"
+                    value="true" checked="${instance.getFilterJobs()}"
+                    help="${descriptor.getHelpFile('filterJobs')}">
+        <f:nested>
+          <f:repeatable field="jobsIdentifiers" minimum="1" noAddButton="true">
+            <table style="width:100%">
+              <f:entry title="RunDeck Job Identifier : " field="identifier"
+                       help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/identifier">
+                <f:textbox />
+                <div align="right">
+                  <input type="button" value="Add a RunDeck Job Identifier" class="repeatable-add show-if-last" />
+                  <f:repeatableDeleteButton />
+                </div>
+              </f:entry>
+            </table>
+          </f:repeatable>
+        </f:nested>
+      </f:radioBlock>
+    </table>
+  </f:nested>
+</j:jelly>
