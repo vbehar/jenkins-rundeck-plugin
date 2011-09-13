@@ -17,7 +17,9 @@ public class RundeckCause extends Cause {
     private final RundeckExecution execution;
 
     /**
-     * @param execution
+     * Instantiate a new cause for the given execution
+     * 
+     * @param execution at the origin of the RunDeck notification
      */
     public RundeckCause(RundeckExecution execution) {
         super();
@@ -90,7 +92,9 @@ public class RundeckCause extends Cause {
         private final RundeckExecution execution;
 
         /**
-         * @param execution
+         * Instantiate a new action, which will use the data from the given execution
+         * 
+         * @param execution at the origin of the RunDeck notification
          */
         public RundeckExecutionEnvironmentContributingAction(RundeckExecution execution) {
             super();
