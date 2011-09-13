@@ -10,7 +10,7 @@
         <f:nested>
           <f:repeatable field="jobsIdentifiers" minimum="1" noAddButton="true">
             <table style="width:100%">
-              <f:entry title="RunDeck Job Identifier : " field="identifier"
+              <f:entry title="RunDeck Job Identifier : " field="value"
                        help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/identifier">
                 <f:textbox />
                 <div align="right">
@@ -22,6 +22,12 @@
           </f:repeatable>
         </f:nested>
       </f:radioBlock>
+      <f:entry title="Build when the RunDeck Execution Status is :"
+               help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/executionStatuses">
+        <f:checkbox name="executionStatuses" title="SUCCEEDED" json="SUCCEEDED" checked="${instance.executionStatuses.contains('SUCCEEDED')}" default="true" /><st:nbsp/>
+        <f:checkbox name="executionStatuses" title="FAILED" json="FAILED" checked="${instance.executionStatuses.contains('FAILED')}" /><st:nbsp/>
+        <f:checkbox name="executionStatuses" title="ABORTED" json="ABORTED" checked="${instance.executionStatuses.contains('ABORTED')}" /><st:nbsp/>
+      </f:entry>
     </table>
   </f:nested>
 </j:jelly>

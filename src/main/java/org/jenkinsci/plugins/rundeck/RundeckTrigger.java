@@ -6,11 +6,15 @@ import hudson.model.AbstractProject;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.RundeckJob;
 
 /**
  * Triggers a build when we receive a WebHook notification from RunDeck.
@@ -21,12 +25,15 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     private final Boolean filterJobs;
 
-    private final List<RundeckJobIdentifier> jobsIdentifiers;
+    private final List<String> jobsIdentifiers;
+
+    private final List<String> executionStatuses;
 
     @DataBoundConstructor
-    public RundeckTrigger(Boolean filterJobs, List<RundeckJobIdentifier> jobsIdentifiers) {
+    public RundeckTrigger(Boolean filterJobs, List<String> jobsIdentifiers, List<String> executionStatuses) {
         this.filterJobs = filterJobs != null ? filterJobs : false;
-        this.jobsIdentifiers = jobsIdentifiers != null ? jobsIdentifiers : new ArrayList<RundeckJobIdentifier>();
+        this.jobsIdentifiers = jobsIdentifiers != null ? jobsIdentifiers : new ArrayList<String>();
+        this.executionStatuses = executionStatuses != null ? executionStatuses : Arrays.asList("SUCCEEDED");
     }
 
     /**
@@ -47,14 +54,43 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @return true if we should schedule a new build, false otherwise
      */
     private boolean shouldScheduleBuild(RundeckExecution execution) {
+        if (!executionStatuses.contains(execution.getStatus().toString())) {
+            return false;
+        }
         if (!filterJobs) {
             return true;
         }
-        for (RundeckJobIdentifier identifier : jobsIdentifiers) {
-            if (identifier.matches(execution.getJob())) {
+        for (String jobIdentifier : jobsIdentifiers) {
+            if (identifierMatchesJob(jobIdentifier, execution.getJob())) {
                 return true;
             }
         }
+        return false;
+    }
+
+    /**
+     * Check if the given jobIdentifier matches (= identifies) the given job
+     * 
+     * @param jobIdentifier could be either a job's UUID, or a reference to a job in the format "project:group/job"
+     * @param job to test
+     * @return true if it matches, false otherwise
+     */
+    private boolean identifierMatchesJob(String jobIdentifier, RundeckJob job) {
+        if (job == null || StringUtils.isBlank(jobIdentifier)) {
+            return false;
+        }
+
+        // UUID
+        if (StringUtils.equalsIgnoreCase(job.getId(), jobIdentifier)) {
+            return true;
+        }
+
+        // "project:group/job" reference
+        String jobReference = job.getProject() + ":" + job.getFullName();
+        if (StringUtils.equalsIgnoreCase(jobReference, jobIdentifier)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -62,8 +98,12 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         return filterJobs;
     }
 
-    public List<RundeckJobIdentifier> getJobsIdentifiers() {
+    public List<String> getJobsIdentifiers() {
         return jobsIdentifiers;
+    }
+
+    public List<String> getExecutionStatuses() {
+        return executionStatuses;
     }
 
     @Override
@@ -82,8 +122,8 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         @Override
         public Trigger<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             return new RundeckTrigger(formData.getJSONObject("filterJobs").getBoolean("value"),
-                                      req.bindJSONToList(RundeckJobIdentifier.class,
-                                                         formData.getJSONObject("filterJobs").get("jobsIdentifiers")));
+                                      bindJSONToList(formData.getJSONObject("filterJobs").get("jobsIdentifiers")),
+                                      bindJSONToList(formData.get("executionStatuses")));
         }
 
         @Override
@@ -94,6 +134,27 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         @Override
         public String getDisplayName() {
             return "Build when we receive a notification from RunDeck";
+        }
+
+        /**
+         * Simplistic version of StaplerRequest.bindJSONToList, in order to use a List of String
+         */
+        private List<String> bindJSONToList(Object src) {
+            List<String> result = new ArrayList<String>();
+            if (src instanceof String) {
+                result.add((String) src);
+            } else if (src instanceof JSONObject) {
+                result.add(((JSONObject) src).getString("value"));
+            } else if (src instanceof JSONArray) {
+                for (Object elem : (JSONArray) src) {
+                    if (elem instanceof String) {
+                        result.add((String) elem);
+                    } else if (elem instanceof JSONObject) {
+                        result.add(((JSONObject) elem).getString("value"));
+                    }
+                }
+            }
+            return result;
         }
     }
 }
