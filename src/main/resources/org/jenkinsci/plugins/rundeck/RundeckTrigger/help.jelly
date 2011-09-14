@@ -1,0 +1,41 @@
+<div>
+    Triggers a build when we receive a WebHook notification from RunDeck.
+
+    <p>
+      This feature uses <a href="http://rundeck.org/">RunDeck</a> 1.3+ <a href="http://rundeck.org/docs/RunDeck-Guide.html#webhooks">WebHook Notification</a>.
+      <br/>You need to configure the <strong>WebHook Notification</strong> of your RunDeck jobs with the following URL : 
+      <tt><a href="${rootURL}/plugin/rundeck/webhook/">${app.rootUrl}plugin/rundeck/webhook/</a></tt>
+      <br/>(Note that if you get an "HTTP Error 500 : Failed to read RunDeck reponse" when clicking on the link, it's normal : you did not send the payload) 
+    </p>
+
+    <p>
+      You can configure this trigger to filter RunDeck notifications before scheduling new Jenkins builds :
+      <ul>
+        <li>filter by RunDeck job</li>
+        <li>filter by the status of the RunDeck execution (success, failure, ...)</li>
+      </ul>
+    </p>
+
+    <p>
+      This trigger will add some environment variables to the build, so that you can access the RunDeck notification data :
+      <ul>
+        <li><strong>RDECK_JOB_ID</strong> : the ID (UUID) of the job</li>
+        <li><strong>RDECK_JOB_NAME</strong> : the name of the job</li>
+        <li><strong>RDECK_JOB_GROUP</strong> : the group of the job</li>
+        <li><strong>RDECK_JOB_DESCRIPTION</strong> : the description of the job</li>
+        <li><strong>RDECK_PROJECT</strong> : the name of the project</li>
+        <li><strong>RDECK_EXEC_ID</strong> : the ID of the execution</li>
+        <li><strong>RDECK_EXEC_STATUS</strong> : the status of the execution (one of SUCCEEDED, FAILED or ABORTED)</li>
+        <li><strong>RDECK_EXEC_STARTED_BY</strong> : the user who started the execution</li>
+        <li><strong>RDECK_EXEC_STARTED_AT</strong> : the date at which the execution started</li>
+        <li><strong>RDECK_EXEC_ENDED_AT</strong> : the date at which the execution ended</li>
+        <li><strong>RDECK_EXEC_ABORTED_BY</strong> : the user who aborted the execution (if the status is ABORTED)</li>
+        <li><strong>RDECK_EXEC_DURATION_MILLIS</strong> : the duration of the execution, in milli-seconds</li>
+        <li><strong>RDECK_EXEC_DURATION_SECONDS</strong> : the duration of the execution, in seconds</li>
+        <li><strong>RDECK_EXEC_DURATION</strong> : the duration of the execution, as a human-readable string ("3 minutes 34 seconds")</li>
+        <li><strong>RDECK_EXEC_SHORT_DURATION</strong> : the duration of the execution, as a short human-readable string ("0:03:34.187")</li>
+        <li><strong>RDECK_EXEC_URL</strong> : the url of the execution (on the RunDeck Web GUI)</li>
+        <li><strong>RDECK_EXEC_DESCRIPTION</strong> : the description of the execution</li>
+      </ul>
+    </p>
+</div>
