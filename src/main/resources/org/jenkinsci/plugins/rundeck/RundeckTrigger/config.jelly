@@ -8,11 +8,11 @@
                     value="true" checked="${instance.getFilterJobs()}"
                     help="${descriptor.getHelpFile('filterJobs')}">
         <f:nested>
-          <f:repeatable field="jobsIdentifiers" minimum="1" noAddButton="true">
+          <f:repeatable items="${instance.jobsIdentifiers}" var="jobsIdentifiers" minimum="1" noAddButton="true">
             <table style="width:100%">
-              <f:entry title="RunDeck Job Identifier : " field="value"
+              <f:entry title="RunDeck Job Identifier : "
                        help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/identifier">
-                <f:textbox />
+                <f:textbox name="value" value="${jobsIdentifiers}" />
                 <div align="right">
                   <input type="button" value="Add a RunDeck Job Identifier" class="repeatable-add show-if-last" />
                   <f:repeatableDeleteButton />
