@@ -1,6 +1,7 @@
 <div>
   This plugin is a Notifier (Publisher) that will talk to a <a href="http://www.rundeck.org">RunDeck</a> instance
   (via its HTTP API) to schedule a job execution on RunDeck after a successful build on Jenkins.<br />
+  It is also a Jenkins Trigger, that will schedule a build on Jenkins after a job execution on RunDeck (using RunDeck WebHook Notification).<br />
   In addition, it turns Jenkins into an <a href="http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider">Option provider</a>
   for RunDeck, if you want to use your Jenkins build artifacts as an option to a RunDeck job.
 </div>
