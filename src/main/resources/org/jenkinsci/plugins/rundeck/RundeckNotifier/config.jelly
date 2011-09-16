@@ -1,8 +1,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <f:entry title="Job ID" field="jobId">
+  <f:entry title="Job Identifier" field="jobIdentifier">
     <f:textbox />
   </f:entry>
-  <f:validateButton title="Check Job" progress="Checking..." method="checkJob" with="jobId" />
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
   </f:entry>
