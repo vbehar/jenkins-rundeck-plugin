@@ -5,6 +5,9 @@
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
   </f:entry>
+  <f:entry title="Node filters (optional)" field="nodeFilters">
+    <f:textarea />
+  </f:entry>
   <f:entry title="SCM Tag (optional)" field="tag">
     <f:textbox />
   </f:entry>

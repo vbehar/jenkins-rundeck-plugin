@@ -54,6 +54,8 @@ public class RundeckNotifier extends Notifier {
 
     private final String options;
 
+    private final String nodeFilters;
+
     private final String tag;
 
     private final Boolean shouldWaitForRundeckJob;
@@ -61,10 +63,11 @@ public class RundeckNotifier extends Notifier {
     private final Boolean shouldFailTheBuild;
 
     @DataBoundConstructor
-    public RundeckNotifier(String jobId, String options, String tag, Boolean shouldWaitForRundeckJob,
-            Boolean shouldFailTheBuild) {
+    public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
+            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
         this.jobId = jobId;
         this.options = options;
+        this.nodeFilters = nodeFilters;
         this.tag = tag;
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
@@ -156,7 +159,9 @@ public class RundeckNotifier extends Notifier {
      */
     private boolean notifyRundeck(RundeckClient rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
         try {
-            RundeckExecution execution = rundeck.triggerJob(jobId, parseOptions(options, build, listener));
+            RundeckExecution execution = rundeck.triggerJob(jobId,
+                                                            parseProperties(options, build, listener),
+                                                            parseProperties(nodeFilters, build, listener));
             listener.getLogger().println("Notification succeeded ! Execution #" + execution.getId() + ", at "
                                          + execution.getUrl() + " (status : " + execution.getStatus() + ")");
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
@@ -201,29 +206,29 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * Parse the options (should be in the Java-Properties syntax) and expand Jenkins environment variables.
+     * Parse the given input (should be in the Java-Properties syntax) and expand Jenkins environment variables.
      * 
-     * @param optionsAsString specified in the Java-Properties syntax (multi-line, key and value separated by = or :)
+     * @param input specified in the Java-Properties syntax (multi-line, key and value separated by = or :)
      * @param build for retrieving Jenkins environment variables
      * @param listener for retrieving Jenkins environment variables and logging the errors
      * @return A {@link Properties} instance (may be empty), or null if unable to parse the options
      */
-    private Properties parseOptions(String optionsAsString, AbstractBuild<?, ?> build, BuildListener listener) {
-        if (StringUtils.isBlank(optionsAsString)) {
+    private Properties parseProperties(String input, AbstractBuild<?, ?> build, BuildListener listener) {
+        if (StringUtils.isBlank(input)) {
             return new Properties();
         }
 
         // try to expand jenkins env vars
         try {
             EnvVars envVars = build.getEnvironment(listener);
-            optionsAsString = Util.replaceMacro(optionsAsString, envVars);
+            input = Util.replaceMacro(input, envVars);
         } catch (Exception e) {
             listener.getLogger().println("Failed to expand environment variables : " + e.getMessage());
         }
 
         // expand our custom tokens : $ARTIFACT_NAME{regex} => name of the first matching artifact found
         // http://groups.google.com/group/rundeck-discuss/browse_thread/thread/94a6833b84fdc10b
-        Matcher matcher = TOKEN_ARTIFACT_NAME_PATTERN.matcher(optionsAsString);
+        Matcher matcher = TOKEN_ARTIFACT_NAME_PATTERN.matcher(input);
         int idx = 0;
         while (matcher.find(idx)) {
             idx = matcher.end();
@@ -232,7 +237,7 @@ public class RundeckNotifier extends Notifier {
             for (@SuppressWarnings("rawtypes")
             Artifact artifact : build.getArtifacts()) {
                 if (pattern.matcher(artifact.getFileName()).matches()) {
-                    optionsAsString = StringUtils.replace(optionsAsString, matcher.group(0), artifact.getFileName());
+                    input = StringUtils.replace(input, matcher.group(0), artifact.getFileName());
                     idx = matcher.start() + artifact.getFileName().length();
                     break;
                 }
@@ -240,9 +245,9 @@ public class RundeckNotifier extends Notifier {
         }
 
         try {
-            return Util.loadProperties(optionsAsString);
+            return Util.loadProperties(input);
         } catch (IOException e) {
-            listener.getLogger().println("Failed to parse options : " + optionsAsString);
+            listener.getLogger().println("Failed to parse : " + input);
             listener.getLogger().println("Error : " + e.getMessage());
             return null;
         }
@@ -282,6 +287,10 @@ public class RundeckNotifier extends Notifier {
 
     public String getOptions() {
         return options;
+    }
+
+    public String getNodeFilters() {
+        return nodeFilters;
     }
 
     public String getTag() {
@@ -341,6 +350,7 @@ public class RundeckNotifier extends Notifier {
             }
             return new RundeckNotifier(job.getId(),
                                        formData.getString("options"),
+                                       formData.getString("nodeFilters"),
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldWaitForRundeckJob"),
                                        formData.getBoolean("shouldFailTheBuild"));

@@ -1,0 +1,53 @@
+<div>
+    <p>
+        This is a list of filters to optionally <strong>filter the nodes</strong> on which your RunDeck will run.<br />
+        You can specify which node to <strong>include</strong> and/or to <strong>exclude</strong> using a single value, a list of values, 
+        or a regular expression (for example the .* pattern will match any text) as the argument to the following options.
+    </p>
+    <p>
+        <strong>Inclusion filters</strong>
+        <ul>
+            <li><strong>hostname</strong> : hostname of the node</li>
+            <li><strong>name</strong> : resource name of the node, which may be different than hostname</li>
+            <li><strong>type</strong> : type name of the node, typically "Node"</li>
+            <li><strong>tags</strong> : a set of user defined tags. If you have multiple tags, the separator is either the comma "," for an OR between them, 
+                or a plus "+" for an AND between them. Example : "web,prod" (either "web" or "prod"), "web+prod" (both "web" and "prod").</li>
+            <li><strong>os-name</strong> : operating system name, e.g. "Linux", "Macintosh OS X"</li>
+            <li><strong>os-family</strong> : operating system family, e.g. "windows","unix"</li>
+            <li><strong>os-arch</strong> : operating system CPU architecture, e.g. "x86", "x386"</li>
+            <li><strong>os-version</strong> : operating system version number</li>
+        </ul>
+    </p>
+    <p>
+        <strong>Exclusion filters</strong>
+        <ul>
+            <li><strong>exclude-hostname</strong> : hostname of the node</li>
+            <li><strong>exclude-name</strong> : resource name of the node, which may be different than hostname</li>
+            <li><strong>exclude-type</strong> : type name of the node, typically "Node"</li>
+            <li><strong>exclude-tags</strong> : a set of user defined tags. If you have multiple tags, the separator is either the comma "," for an OR between them, 
+                or a plus "+" for an AND between them. Example : "web,prod" (either "web" or "prod"), "web+prod" (both "web" and "prod").</li>
+            <li><strong>exclude-os-name</strong> : operating system name, e.g. "Linux", "Macintosh OS X"</li>
+            <li><strong>exclude-os-family</strong> : operating system family, e.g. "windows","unix"</li>
+            <li><strong>exclude-os-arch</strong> : operating system CPU architecture, e.g. "x86", "x386"</li>
+            <li><strong>exclude-os-version</strong> : operating system version number</li>
+        </ul>
+    </p>
+    <p>
+        <strong>Predecence</strong> is the issue of whether a node should be included in the result set when it matches both an exclusion filter and an inclusion filter.
+        <ul>
+            <li><strong>exclude-precedence</strong> : boolean - whether exclusion filters take precedence (default to yes). Must be either "true" or "false".</li>
+        </ul>
+    </p>
+    <p>
+        This field should be written in the <strong>Java-Properties format</strong>, 1 option per line : <strong>key=value</strong>.<br />
+        You can use Jenkins environment variables ($JOB_NAME, $WORKSPACE, etc) or System environment variables ($OSTYPE, $USER, etc) in your values, 
+        and we will expand them when notifying RunDeck.
+    </p>
+    <p>
+        Example : <br />
+        <pre>
+            tags = web+prod
+            exclude-os-family = windows
+        </pre>
+    </p>
+</div>
