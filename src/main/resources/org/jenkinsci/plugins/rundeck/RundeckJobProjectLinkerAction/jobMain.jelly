@@ -3,7 +3,7 @@
     <tr>
       <td>
         <a href="${it.urlName}">
-          <img src="/plugin/rundeck/images/rundeck_48x48.png" height="48" width="48" style="margin-right:1em" />
+          <img src="${rootURL}/plugin/rundeck/images/rundeck_48x48.png" height="48" width="48" style="margin-right:1em" />
         </a>
       </td>
       <td style="vertical-align:middle">
