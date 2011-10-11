@@ -65,7 +65,7 @@ public class RundeckJobProjectLinkerAction implements Action {
     }
 
     public String getDisplayName() {
-        return "RunDeck Job #" + rundeckJob.getId() + " : " + rundeckJob.getName();
+        return "Job: [" + rundeckJob.getProject() + "] " + rundeckJob.getName();
     }
 
     public String getUrlName() {
