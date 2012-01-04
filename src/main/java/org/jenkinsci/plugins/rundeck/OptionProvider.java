@@ -1,9 +1,9 @@
 package org.jenkinsci.plugins.rundeck;
 
+import hudson.model.TopLevelItem;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Run;
-import hudson.model.TopLevelItem;
 import hudson.model.Run.Artifact;
 import hudson.util.RunList;
 import java.io.IOException;
@@ -28,13 +28,28 @@ public class OptionProvider {
     /**
      * Provider for artifacts of a specific build, with the name and absolute url of the artifact.<br>
      * Mandatory parameter : "project"<br>
-     * Optional parameters : "build" (either a build number, or "lastStable", "lastSuccessful", "last")
+     * Optional parameters : "build" (either a build number, or "lastStable", "lastSuccessful", "last"), "artifactRegex"
+     * (java regex used to filter artifacts).
      */
     public void doArtifact(StaplerRequest request, StaplerResponse response) throws IOException {
+        // mandatory parameters
         AbstractProject<?, ?> project = findProject(request.getParameter("project"));
         if (project == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
             return;
+        }
+
+        // optional parameters
+        String artifactRegex = request.getParameter("artifactRegex");
+        Pattern artifactPattern = null;
+        if (StringUtils.isNotBlank(artifactRegex)) {
+            try {
+                artifactPattern = Pattern.compile(artifactRegex);
+            } catch (PatternSyntaxException e) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                                   "Invalid java-regex syntax for the 'artifactRegex' parameter : " + e.getMessage());
+                return;
+            }
         }
 
         Run<?, ?> build = findBuild(request.getParameter("build"), project);
@@ -44,7 +59,10 @@ public class OptionProvider {
 
         List<Option> options = new ArrayList<OptionProvider.Option>();
         for (Artifact artifact : build.getArtifacts()) {
-            options.add(new Option(artifact.getFileName(), buildArtifactUrl(build, artifact)));
+            if (artifactPattern == null
+                || (artifactPattern != null && artifactPattern.matcher(artifact.getFileName()).matches())) {
+                options.add(new Option(artifact.getFileName(), buildArtifactUrl(build, artifact)));
+            }
         }
 
         writeJson(options, response);
@@ -77,7 +95,7 @@ public class OptionProvider {
                 artifactPattern = Pattern.compile(artifactRegex);
             } catch (PatternSyntaxException e) {
                 response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-                                   "Invalid java-regex syntax for the 'artifactPattern' parameter : " + e.getMessage());
+                                   "Invalid java-regex syntax for the 'artifactRegex' parameter : " + e.getMessage());
                 return;
             }
         }
