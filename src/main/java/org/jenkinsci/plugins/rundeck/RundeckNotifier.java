@@ -158,6 +158,7 @@ public class RundeckNotifier extends Notifier {
      * @return true if successful, false otherwise
      */
     private boolean notifyRundeck(RundeckClient rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
+    	int i=0;
         try {
             RundeckExecution execution = rundeck.triggerJob(jobId,
                                                             parseProperties(options, build, listener),
@@ -168,14 +169,34 @@ public class RundeckNotifier extends Notifier {
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
                 listener.getLogger().println("Waiting for RunDeck execution to finish...");
+                
+                int ii=0;
                 while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
                     try {
-                        Thread.sleep(5000);
+                        Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         listener.getLogger().println("Oops, interrupted ! " + e.getMessage());
                         break;
                     }
-                    execution = rundeck.getExecution(execution.getId());
+                    
+                    try {
+                        listener.getLogger().println("execution id: " + execution.getId());
+                        listener.getLogger().println("execution duration: " + execution.getDuration());
+                        listener.getLogger().println("execution status: " + execution.getStatus());
+
+                        execution = rundeck.getExecution(execution.getId());
+                        ii--;
+                    } catch (Exception e) {
+                        listener.getLogger().println("rundeck/execution object failure:" + e.getMessage());
+                        ii++;
+                        
+                        // if 20 rundeck object failures in a row, throw exception and end it all
+                        // else retry
+                        if (ii>=20) {
+                        	i=1000;
+                        	throw new RundeckApiLoginException(e.getMessage());
+                        }
+                    }
                 }
                 listener.getLogger().println("RunDeck execution #" + execution.getId() + " finished in "
                                              + execution.getDuration() + ", with status : " + execution.getStatus());
@@ -194,7 +215,15 @@ public class RundeckNotifier extends Notifier {
             }
         } catch (RundeckApiLoginException e) {
             listener.getLogger().println("Login failed on " + rundeck.getUrl() + " : " + e.getMessage());
-            return false;
+            
+            // if 3 "original" rundeck object failures in a row, return false
+            // else retry
+            if (i>=3) {
+            	return false;
+            } else {
+            	i++;
+            	return notifyRundeck(rundeck, build, listener);
+            }
         } catch (RundeckApiException e) {
             listener.getLogger().println("Error while talking to RunDeck's API at " + rundeck.getUrl() + " : "
                                          + e.getMessage());
