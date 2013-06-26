@@ -36,6 +36,7 @@
         <li><strong>RDECK_EXEC_SHORT_DURATION</strong> : the duration of the execution, as a short human-readable string ("0:03:34.187")</li>
         <li><strong>RDECK_EXEC_URL</strong> : the url of the execution (on the RunDeck Web GUI)</li>
         <li><strong>RDECK_EXEC_DESCRIPTION</strong> : the description of the execution</li>
+        <li><strong>RDECK_EXEC_ARG_</strong><em>param_name</em>: for each execution parameter, will be set to its corresponding value</li>
       </ul>
     </p>
 </div>

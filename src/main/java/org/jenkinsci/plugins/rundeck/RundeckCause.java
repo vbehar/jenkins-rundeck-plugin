@@ -6,6 +6,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.Cause;
 import org.rundeck.api.domain.RundeckExecution;
 
+import java.util.Map;
+
 /**
  * The cause of a RunDeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the RunDeck
  * notification).
@@ -122,6 +124,10 @@ public class RundeckCause extends Cause {
                 env.put("RDECK_EXEC_SHORT_DURATION", String.valueOf(execution.getShortDuration()));
                 env.put("RDECK_EXEC_URL", String.valueOf(execution.getUrl()));
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
+
+                for (Map.Entry<String, String> arg: execution.getArguments().entrySet()) {
+                    env.put("RDECK_EXEC_ARG_" + arg.getKey(), arg.getValue());
+                }
             }
         }
 
