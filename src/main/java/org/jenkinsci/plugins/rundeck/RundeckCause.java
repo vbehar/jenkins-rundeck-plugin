@@ -4,9 +4,12 @@ import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
+import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.domain.RundeckExecution;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The cause of a RunDeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the RunDeck
@@ -15,6 +18,8 @@ import java.util.Map;
  * @author Vincent Behar
  */
 public class RundeckCause extends Cause {
+
+    private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
 
     private final RundeckExecution execution;
 
@@ -125,9 +130,22 @@ public class RundeckCause extends Cause {
                 env.put("RDECK_EXEC_URL", String.valueOf(execution.getUrl()));
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
 
-                for (Map.Entry<String, String> arg: execution.getArguments().entrySet()) {
-                    env.put("RDECK_EXEC_ARG_" + arg.getKey(), arg.getValue());
+                if ( StringUtils.isNotEmpty(execution.getArgstring())) {
+                    String[] args = execution.getArgstring().split("-");
+                    for (int i = 1; i < args.length; i++) {
+                        final Matcher matcher = ARG_STRING_PATTERN.matcher(args[i]);
+                        if (matcher.matches()) {
+                            final String key = matcher.group(1);
+                            String value = StringUtils.trim(matcher.group(2));
+                            if (value.endsWith("\"")) {
+                                value = value.substring(0, value.length()-1);
+                            }
+
+                            env.put("RDECK_EXEC_ARG_" + key, value);
+                        }
+                    }
                 }
+
             }
         }
 
