@@ -9,7 +9,13 @@
     <f:entry title="Password" help="/plugin/rundeck/help-globalConfig-password.html">
       <f:password name="rundeck.password" value="${descriptor.getRundeckInstance().getPassword()}" />
     </f:entry>
+    <f:entry title="Auth Token" help="/plugin/rundeck/help-globalConfig-authtoken.html">
+      <f:textbox name="rundeck.authtoken" value="${descriptor.getRundeckInstance().getToken()}" />
+    </f:entry>
+    <f:entry title="API Version" help="/plugin/rundeck/help-globalConfig-apiversion.html">
+      <f:textbox name="rundeck.apiversion" value="${descriptor.getRundeckInstance().getVersion()}" />
+    </f:entry>
     <f:validateButton title="Test Connection" progress="Testing..." method="testConnection"
-      with="rundeck.url,rundeck.login,rundeck.password" />
+      with="rundeck.url,rundeck.login,rundeck.password,rundeck.authtoken" />
   </f:section>
 </j:jelly>

@@ -16,6 +16,7 @@ import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
+import org.rundeck.api.RunJob;
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckExecution;
@@ -115,8 +116,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RundeckExecution triggerJob(String jobId, Properties options, Properties nodeFilters)
-                    throws RundeckApiException {
+            public RundeckExecution triggerJob(RunJob runJob) throws RundeckApiException {
                 throw new RundeckApiException("Fake error for testing");
             }
 
@@ -152,12 +152,12 @@ public class RundeckNotifierTest extends HudsonTestCase {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public RundeckExecution triggerJob(String jobId, Properties options, Properties nodeFilters) {
-                Assert.assertEquals(4, options.size());
-                Assert.assertEquals("value 1", options.getProperty("option1"));
-                Assert.assertEquals("1", options.getProperty("buildNumber"));
-                Assert.assertEquals("my project name", options.getProperty("jobName"));
-                return super.triggerJob(jobId, options, nodeFilters);
+            public RundeckExecution triggerJob(RunJob runJob) {
+                Assert.assertEquals(4, runJob.getOptions().size());
+                Assert.assertEquals("value 1", runJob.getOptions().getProperty("option1"));
+                Assert.assertEquals("1", runJob.getOptions().getProperty("buildNumber"));
+                Assert.assertEquals("my project name", runJob.getOptions().getProperty("jobName"));
+                return super.triggerJob(runJob);
             }
 
         });
@@ -327,7 +327,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         }
 
         @Override
-        public RundeckExecution triggerJob(String jobId, Properties options, Properties nodeFilters) {
+        public RundeckExecution triggerJob(RunJob job) {
             return initExecution(ExecutionStatus.RUNNING);
         }
 
