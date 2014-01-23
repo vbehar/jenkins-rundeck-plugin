@@ -2,7 +2,7 @@
     Triggers a build when we receive a WebHook notification from Rundeck.
 
     <p>
-      This feature uses <a href="http://rundeck.org/">Rundeck</a> 1.3+ <a href="http://rundeck.org/docs/RunDeck-Guide.html#webhooks">WebHook Notification</a>.
+      This feature uses <a href="http://rundeck.org/">Rundeck</a> 1.3+ <a href="http://rundeck.org/docs/manual/jobs.html#webhooks">WebHook Notification</a>.
       <br/>You need to configure the <strong>WebHook Notification</strong> of your Rundeck jobs with the following URL :
       <tt><a href="${rootURL}/plugin/rundeck/webhook/">${app.rootUrl}plugin/rundeck/webhook/</a></tt>
       <br/>(Note that if you get an "HTTP Error 500 : Failed to read Rundeck reponse" when clicking on the link, it's normal : you did not send the payload)

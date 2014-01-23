@@ -19,7 +19,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * Option provider for Rundeck - see http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
+ * Option provider for Rundeck - see http://rundeck.org/docs/manual/job-options.html#option-model-provider
  * 
  * @author Vincent Behar
  */
@@ -246,7 +246,7 @@ public class OptionProvider {
 
     /**
      * Outputs the given list of options as a JSON. See format at
-     * http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
+     * http://rundeck.org/docs/manual/job-options.html#option-model-provider
      * 
      * @param options
      * @param response
