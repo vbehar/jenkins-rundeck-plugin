@@ -1,23 +1,23 @@
 <div>
-    Triggers a build when we receive a WebHook notification from RunDeck.
+    Triggers a build when we receive a WebHook notification from Rundeck.
 
     <p>
-      This feature uses <a href="http://rundeck.org/">RunDeck</a> 1.3+ <a href="http://rundeck.org/docs/RunDeck-Guide.html#webhooks">WebHook Notification</a>.
-      <br/>You need to configure the <strong>WebHook Notification</strong> of your RunDeck jobs with the following URL : 
+      This feature uses <a href="http://rundeck.org/">Rundeck</a> 1.3+ <a href="http://rundeck.org/docs/RunDeck-Guide.html#webhooks">WebHook Notification</a>.
+      <br/>You need to configure the <strong>WebHook Notification</strong> of your Rundeck jobs with the following URL :
       <tt><a href="${rootURL}/plugin/rundeck/webhook/">${app.rootUrl}plugin/rundeck/webhook/</a></tt>
-      <br/>(Note that if you get an "HTTP Error 500 : Failed to read RunDeck reponse" when clicking on the link, it's normal : you did not send the payload) 
+      <br/>(Note that if you get an "HTTP Error 500 : Failed to read Rundeck reponse" when clicking on the link, it's normal : you did not send the payload)
     </p>
 
     <p>
-      You can configure this trigger to filter RunDeck notifications before scheduling new Jenkins builds :
+      You can configure this trigger to filter Rundeck notifications before scheduling new Jenkins builds :
       <ul>
-        <li>filter by RunDeck job</li>
-        <li>filter by the status of the RunDeck execution (success, failure, ...)</li>
+        <li>filter by Rundeck job</li>
+        <li>filter by the status of the Rundeck execution (success, failure, ...)</li>
       </ul>
     </p>
 
     <p>
-      This trigger will add some environment variables to the build, so that you can access the RunDeck notification data :
+      This trigger will add some environment variables to the build, so that you can access the Rundeck notification data :
       <ul>
         <li><strong>RDECK_JOB_ID</strong> : the ID (UUID) of the job</li>
         <li><strong>RDECK_JOB_NAME</strong> : the name of the job</li>
@@ -34,7 +34,7 @@
         <li><strong>RDECK_EXEC_DURATION_SECONDS</strong> : the duration of the execution, in seconds</li>
         <li><strong>RDECK_EXEC_DURATION</strong> : the duration of the execution, as a human-readable string ("3 minutes 34 seconds")</li>
         <li><strong>RDECK_EXEC_SHORT_DURATION</strong> : the duration of the execution, as a short human-readable string ("0:03:34.187")</li>
-        <li><strong>RDECK_EXEC_URL</strong> : the url of the execution (on the RunDeck Web GUI)</li>
+        <li><strong>RDECK_EXEC_URL</strong> : the url of the execution (on the Rundeck Web GUI)</li>
         <li><strong>RDECK_EXEC_DESCRIPTION</strong> : the description of the execution</li>
         <li><strong>RDECK_EXEC_ARG_</strong><em>param_name</em>: for each execution parameter, will be set to its corresponding value</li>
       </ul>

@@ -29,7 +29,7 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
 
 /**
- * Jenkins {@link Notifier} that runs a job on RunDeck (via the {@link RundeckClient})
+ * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
  * 
  * @author Vincent Behar
  */
@@ -74,13 +74,13 @@ public class RundeckNotifier extends Notifier {
         RundeckClient rundeck = getDescriptor().getRundeckInstance();
 
         if (rundeck == null) {
-            listener.getLogger().println("RunDeck configuration is not valid !");
+            listener.getLogger().println("Rundeck configuration is not valid !");
             return false;
         }
         try {
             rundeck.ping();
         } catch (RundeckApiException e) {
-            listener.getLogger().println("RunDeck is not running !");
+            listener.getLogger().println("Rundeck is not running !");
             return false;
         }
 
@@ -92,16 +92,16 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * Check if we need to notify RunDeck for this build. If we have a tag, we will look for it in the changelog of the
+     * Check if we need to notify Rundeck for this build. If we have a tag, we will look for it in the changelog of the
      * build and in the changelog of all upstream builds.
      * 
      * @param build for checking the changelog
      * @param listener for logging the result
-     * @return true if we should notify RunDeck, false otherwise
+     * @return true if we should notify Rundeck, false otherwise
      */
     private boolean shouldNotifyRundeck(AbstractBuild<?, ?> build, BuildListener listener) {
         if (StringUtils.isBlank(tag)) {
-            listener.getLogger().println("Notifying RunDeck...");
+            listener.getLogger().println("Notifying Rundeck...");
             return true;
         }
 
@@ -109,7 +109,7 @@ public class RundeckNotifier extends Notifier {
         for (Entry changeLog : build.getChangeSet()) {
             if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
                 listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
-                                             + ") - Notifying RunDeck...");
+                                             + ") - Notifying Rundeck...");
                 return true;
             }
         }
@@ -128,7 +128,7 @@ public class RundeckNotifier extends Notifier {
                                 listener.getLogger().println("Found " + tag + " in changelog (from "
                                                              + changeLog.getAuthor().getId() + ") in upstream build ("
                                                              + upstreamBuild.getFullDisplayName()
-                                                             + ") - Notifying RunDeck...");
+                                                             + ") - Notifying Rundeck...");
                                 return true;
                             }
                         }
@@ -141,7 +141,7 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * Notify RunDeck : run a job on RunDeck
+     * Notify Rundeck : run a job on Rundeck
      * 
      * @param rundeck instance to notify
      * @param build for adding actions
@@ -161,7 +161,7 @@ public class RundeckNotifier extends Notifier {
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
-                listener.getLogger().println("Waiting for RunDeck execution to finish...");
+                listener.getLogger().println("Waiting for Rundeck execution to finish...");
                 while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
                     try {
                         Thread.sleep(5000);
@@ -171,7 +171,7 @@ public class RundeckNotifier extends Notifier {
                     }
                     execution = rundeck.getExecution(execution.getId());
                 }
-                listener.getLogger().println("RunDeck execution #" + execution.getId() + " finished in "
+                listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
                         + execution.getDuration() + ", with status : " + execution.getStatus());
 
                 switch (execution.getStatus()) {
@@ -193,7 +193,7 @@ public class RundeckNotifier extends Notifier {
             listener.getLogger().println("Token auth failed on " + rundeck.getUrl() + " : " + e.getMessage());
             return false;
         } catch (RundeckApiException e) {
-            listener.getLogger().println("Error while talking to RunDeck's API at " + rundeck.getUrl() + " : "
+            listener.getLogger().println("Error while talking to Rundeck's API at " + rundeck.getUrl() + " : "
                                          + e.getMessage());
             return false;
         } catch (IllegalArgumentException e) {
@@ -382,12 +382,12 @@ public class RundeckNotifier extends Notifier {
                     rundeck = builder.login(login, password).build();
                 }
             } catch (IllegalArgumentException e) {
-                return FormValidation.error("RunDeck configuration is not valid ! %s", e.getMessage());
+                return FormValidation.error("Rundeck configuration is not valid ! %s", e.getMessage());
             }
             try {
                 rundeck.ping();
             } catch (RundeckApiException e) {
-                return FormValidation.error("We couldn't find a live RunDeck instance at %s", rundeck.getUrl());
+                return FormValidation.error("We couldn't find a live Rundeck instance at %s", rundeck.getUrl());
             }
             try {
                 rundeck.testAuth();
@@ -396,12 +396,12 @@ public class RundeckNotifier extends Notifier {
             } catch (RundeckApiException.RundeckApiTokenException e) {
                 return FormValidation.error("Your token authentication is not valid!");
             }
-            return FormValidation.ok("Your RunDeck instance is alive, and your credentials are valid !");
+            return FormValidation.ok("Your Rundeck instance is alive, and your credentials are valid !");
         }
 
         public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier) {
             if (rundeckInstance == null) {
-                return FormValidation.error("RunDeck global configuration is not valid !");
+                return FormValidation.error("Rundeck global configuration is not valid !");
             }
             if (StringUtils.isBlank(jobIdentifier)) {
                 return FormValidation.error("The job identifier is mandatory !");
@@ -411,7 +411,7 @@ public class RundeckNotifier extends Notifier {
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
-                    return FormValidation.ok("Your RunDeck job is : %s [%s] %s",
+                    return FormValidation.ok("Your Rundeck job is : %s [%s] %s",
                                              job.getId(),
                                              job.getProject(),
                                              job.getFullName());
@@ -450,7 +450,7 @@ public class RundeckNotifier extends Notifier {
 
         @Override
         public String getDisplayName() {
-            return "RunDeck";
+            return "Rundeck";
         }
 
         public RundeckClient getRundeckInstance() {
@@ -463,7 +463,7 @@ public class RundeckNotifier extends Notifier {
     }
 
     /**
-     * {@link BuildBadgeAction} used to display a RunDeck icon + a link to the RunDeck execution page, on the Jenkins
+     * {@link BuildBadgeAction} used to display a Rundeck icon + a link to the Rundeck execution page, on the Jenkins
      * build history and build result page.
      */
     public static class RundeckExecutionBuildBadgeAction implements BuildBadgeAction {
@@ -476,7 +476,7 @@ public class RundeckNotifier extends Notifier {
         }
 
         public String getDisplayName() {
-            return "RunDeck Execution Result";
+            return "Rundeck Execution Result";
         }
 
         public String getIconFileName() {

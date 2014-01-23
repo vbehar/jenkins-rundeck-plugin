@@ -46,7 +46,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
 
         addScmCommit(build.getWorkspace(), "commit message");
@@ -55,7 +55,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
     }
 
@@ -72,7 +72,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
 
         addScmCommit(build.getWorkspace(), "commit message");
 
@@ -80,7 +80,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
     }
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
@@ -96,7 +96,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
 
         addScmCommit(build.getWorkspace(), "commit message - #deploy");
 
@@ -104,7 +104,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("#deploy"));
         assertTrue(s.contains("Notification succeeded !"));
     }
@@ -131,7 +131,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
 
         addScmCommit(build.getWorkspace(), "commit message - #deploy");
 
@@ -139,9 +139,9 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("#deploy"));
-        assertTrue(s.contains("Error while talking to RunDeck's API"));
+        assertTrue(s.contains("Error while talking to Rundeck's API"));
         assertTrue(s.contains("Fake error for testing"));
     }
 
@@ -171,7 +171,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
     }
 
@@ -195,7 +195,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
                                                                .get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
 
         addScmCommit(upstreamBuild.getWorkspace(), "commit message - #deploy");
 
@@ -204,7 +204,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatusSuccess(project.scheduleBuild2(0, new UpstreamCause((Run<?, ?>) upstreamBuild)).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("#deploy"));
         assertTrue(s.contains("in upstream build (" + upstreamBuild.getFullDisplayName() + ")"));
         assertTrue(s.contains("Notification succeeded !"));
@@ -223,7 +223,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
 
         addScmCommit(build.getWorkspace(), "commit message");
 
@@ -231,7 +231,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         build = assertBuildStatus(Result.FAILURE, project.scheduleBuild2(0).get());
         assertFalse(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         s = FileUtils.readFileToString(build.getLogFile());
-        assertFalse(s.contains("Notifying RunDeck"));
+        assertFalse(s.contains("Notifying Rundeck"));
     }
 
     public void testWaitForRundeckJob() throws Exception {
@@ -247,10 +247,10 @@ public class RundeckNotifierTest extends HudsonTestCase {
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
         assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
         String s = FileUtils.readFileToString(build.getLogFile());
-        assertTrue(s.contains("Notifying RunDeck..."));
+        assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
-        assertTrue(s.contains("Waiting for RunDeck execution to finish..."));
-        assertTrue(s.contains("RunDeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
+        assertTrue(s.contains("Waiting for Rundeck execution to finish..."));
+        assertTrue(s.contains("Rundeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
     }
 
     private String createOptions() {

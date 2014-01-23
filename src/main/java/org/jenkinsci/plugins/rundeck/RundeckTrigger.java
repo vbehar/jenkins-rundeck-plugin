@@ -133,7 +133,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
         @Override
         public String getDisplayName() {
-            return "Build when we receive a notification from RunDeck";
+            return "Build when we receive a notification from Rundeck";
         }
 
         /**

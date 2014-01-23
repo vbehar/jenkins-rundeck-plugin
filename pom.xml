@@ -11,8 +11,8 @@
   <version>3.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
-  <name>Jenkins RunDeck plugin</name>
-  <description>Jenkins plugin for RunDeck integration : trigger, notifier and option provider.</description>
+  <name>Jenkins Rundeck plugin</name>
+  <description>Jenkins plugin for Rundeck integration : trigger, notifier and option provider.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/RunDeck+Plugin</url>
   <scm>
     <url>https://github.com/jenkinsci/rundeck-plugin</url>

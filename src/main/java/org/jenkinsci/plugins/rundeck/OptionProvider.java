@@ -19,7 +19,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * Option provider for RunDeck - see http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
+ * Option provider for Rundeck - see http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
  * 
  * @author Vincent Behar
  */
