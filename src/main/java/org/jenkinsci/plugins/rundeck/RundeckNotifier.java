@@ -149,9 +149,24 @@ public class RundeckNotifier extends Notifier {
      * @return true if successful, false otherwise
      */
     private boolean notifyRundeck(RundeckClient rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
+        //if the jobId is in the form "project:[group/*]name", find the actual job ID first.
+        String foundJobId = null;
+        try {
+            foundJobId = RundeckDescriptor.findJobId(jobId, rundeck);
+        } catch (RundeckApiException e) {
+            listener.getLogger().println("Failed to get job with the identifier : " + jobId + " : "+e.getMessage());
+            return false;
+        } catch (IllegalArgumentException e) {
+            listener.getLogger().println("Failed to get job with the identifier : " + jobId + " : " +e.getMessage());
+            return false;
+        }
+        if (foundJobId == null) {
+            listener.getLogger().println("Could not find a job with the identifier : " + jobId);
+            return false;
+        }
         try {
             RundeckExecution execution = rundeck.triggerJob(RunJobBuilder.builder()
-                    .setJobId(jobId)
+                    .setJobId(foundJobId)
                     .setOptions(parseProperties(options, build, listener))
                     .setNodeFilters(parseProperties(nodeFilters, build, listener))
                     .build());
@@ -345,7 +360,7 @@ public class RundeckNotifier extends Notifier {
             String jobIdentifier = formData.getString("jobIdentifier");
             RundeckJob job = null;
             try {
-                job = findJob(jobIdentifier);
+                job = findJob(jobIdentifier, rundeckInstance);
             } catch (RundeckApiException e) {
                 throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
             } catch (IllegalArgumentException e) {
@@ -354,7 +369,7 @@ public class RundeckNotifier extends Notifier {
             if (job == null) {
                 throw new FormException("Could not found a job with the identifier : " + jobIdentifier, "jobIdentifier");
             }
-            return new RundeckNotifier(job.getId(),
+            return new RundeckNotifier(jobIdentifier,
                                        formData.getString("options"),
                                        formData.getString("nodeFilters"),
                                        formData.getString("tag"),
@@ -407,7 +422,7 @@ public class RundeckNotifier extends Notifier {
                 return FormValidation.error("The job identifier is mandatory !");
             }
             try {
-                RundeckJob job = findJob(jobIdentifier);
+                RundeckJob job = findJob(jobIdentifier, rundeckInstance);
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
@@ -424,14 +439,36 @@ public class RundeckNotifier extends Notifier {
         }
 
         /**
+         * Return a rundeck Job ID, by find a rundeck job if the identifier is a project:[group/]*name format, otherwise
+         * returning the original identifier as the ID.
+         * @param jobIdentifier either a Job ID, or "project:[group/]*name"
+         * @param rundeckClient the client instance
+         * @return a job UUID
+         * @throws RundeckApiException
+         * @throws IllegalArgumentException
+         */
+        static String findJobId(String jobIdentifier, RundeckClient rundeckClient) throws RundeckApiException,
+                IllegalArgumentException {
+            Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
+            if (matcher.find() && matcher.groupCount() == 3) {
+                String project = matcher.group(1);
+                String groupPath = matcher.group(2);
+                String name = matcher.group(3);
+                return rundeckClient.findJob(project, groupPath, name).getId();
+            } else {
+                return jobIdentifier;
+            }
+        }
+        /**
          * Find a {@link RundeckJob} with the given identifier
-         * 
+         *
          * @param jobIdentifier either a simple ID, an UUID or a reference (project:group/name)
+         * @param rundeckInstance
          * @return the {@link RundeckJob} found, or null if not found
          * @throws RundeckApiException in case of error, or if no job with this ID
          * @throws IllegalArgumentException if the identifier is not valid
          */
-        private RundeckJob findJob(String jobIdentifier) throws RundeckApiException, IllegalArgumentException {
+        public static RundeckJob findJob(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
