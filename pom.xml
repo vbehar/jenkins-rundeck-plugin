@@ -53,7 +53,7 @@
     <dependency>
       <groupId>org.rundeck</groupId>
       <artifactId>rundeck-api-java-client</artifactId>
-      <version>9.2</version>
+      <version>9.3</version>
     </dependency>
     <!-- overwrite the xalan version of rundeck api by the version used in jenkins -->
     <dependency>
