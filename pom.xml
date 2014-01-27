@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.400</version>
+    <version>1.424</version>
   </parent>
 
   <artifactId>rundeck</artifactId>
@@ -48,7 +48,7 @@
     <dependency>
       <groupId>org.rundeck</groupId>
       <artifactId>rundeck-api-java-client</artifactId>
-      <version>1.2</version>
+      <version>6.0</version>
     </dependency>
     <!-- overwrite the xalan version of rundeck api by the version used in jenkins -->
     <dependency>
@@ -56,6 +56,16 @@
       <artifactId>xalan</artifactId>
       <version>2.7.1</version>
     </dependency>
+    <dependency>
+      <groupId>xalan</groupId>
+      <artifactId>serializer</artifactId>
+      <version>2.7.1</version>
+    </dependency>
+      <dependency>
+          <groupId>commons-lang</groupId>
+          <artifactId>commons-lang</artifactId>
+          <version>2.6</version>
+      </dependency>
   </dependencies>
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->

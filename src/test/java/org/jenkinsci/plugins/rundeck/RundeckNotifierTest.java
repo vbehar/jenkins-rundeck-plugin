@@ -1,13 +1,8 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.FilePath;
-import hudson.model.Action;
-import hudson.model.Build;
-import hudson.model.FreeStyleBuild;
-import hudson.model.Result;
+import hudson.model.*;
 import hudson.model.Cause.UpstreamCause;
-import hudson.model.FreeStyleProject;
-import hudson.model.Run;
 import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +22,7 @@ import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
 import org.tmatesoft.svn.core.SVNDepth;
+import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 
 /**
@@ -279,7 +275,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     private void addScmCommit(FilePath workspace, String commitMessage) throws Exception {
-        SVNClientManager svnm = SubversionSCM.createSvnClientManager();
+        SVNClientManager svnm = SubversionSCM.createSvnClientManager((ISVNAuthenticationProvider)null);
 
         FilePath newFilePath = workspace.child("new-file");
         File newFile = new File(newFilePath.getRemote());
