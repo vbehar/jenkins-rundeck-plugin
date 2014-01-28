@@ -13,7 +13,7 @@ import org.rundeck.api.parser.ExecutionParser;
 import org.rundeck.api.parser.ParserHelper;
 
 /**
- * Listener for RunDeck WebHook notifications (see http://rundeck.org/docs/RunDeck-Guide.html#webhooks), will trigger a
+ * Listener for Rundeck WebHook notifications (see http://rundeck.org/docs/manual/jobs.html#webhooks), will trigger a
  * build using {@link RundeckTrigger}
  * 
  * @author Vincent Behar

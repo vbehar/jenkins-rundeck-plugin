@@ -39,7 +39,7 @@ public class RundeckCause extends Cause {
         if (execution != null) {
             description.append("Started by <a href=\"");
             description.append(execution.getUrl());
-            description.append("\">RunDeck Execution #");
+            description.append("\">Rundeck Execution #");
             description.append(execution.getId());
             description.append("</a>");
             if (execution.getJob() != null) {
@@ -49,7 +49,7 @@ public class RundeckCause extends Cause {
                 description.append(execution.getJob().getFullName());
             }
         } else {
-            description.append("Started by a RunDeck Notification");
+            description.append("Started by a Rundeck Notification");
         }
         return description.toString();
     }

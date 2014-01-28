@@ -35,7 +35,7 @@ public class RundeckJobProjectLinkerAction implements Action {
             throw new IllegalArgumentException("rundeckClient should not be null !");
         }
         this.rundeck = rundeck;
-        this.rundeckJob = rundeck.getJob(rundeckJobId);
+        this.rundeckJob = RundeckNotifier.RundeckDescriptor.findJob(rundeckJobId, rundeck);
         this.rundeckJobUrl = buildRundeckJobUrl();
     }
 
