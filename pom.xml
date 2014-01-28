@@ -29,6 +29,11 @@
       <id>vbehar</id>
       <name>Vincent Behar</name>
     </developer>
+    <developer>
+      <id>gschueler</id>
+      <name>Greg Schueler</name>
+      <email>greg@simplifyops.com</email>
+    </developer>
   </developers>
 
   <build>
