@@ -239,7 +239,7 @@ public class OptionProvider {
      */
     private String buildArtifactUrl(Run<?, ?> build, Artifact artifact) {
         StringBuilder url = new StringBuilder();
-        url.append(Hudson.getInstance().getRootUrlFromRequest());
+        url.append(Hudson.getInstance().getRootUrl());
         url.append(build.getUrl()).append("artifact/").append(artifact.getHref());
         return url.toString();
     }
