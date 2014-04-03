@@ -131,7 +131,8 @@ public class RundeckCause extends Cause {
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
 
                 if ( StringUtils.isNotEmpty(execution.getArgstring())) {
-                    String[] args = execution.getArgstring().split("-");
+                    // Split argstring around hyphens at the beginning or a combination of whitespace and hyphen
+                    String[] args = execution.getArgstring().split("^-|\\s-");
                     for (int i = 1; i < args.length; i++) {
                         final Matcher matcher = ARG_STRING_PATTERN.matcher(args[i]);
                         if (matcher.matches()) {
