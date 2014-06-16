@@ -58,6 +58,12 @@ public class RundeckNotifier extends Notifier {
 
     private final Boolean includeRundeckLogs;
 
+    public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
+            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
+       this(jobId, options, nodeFilters, tag,
+            shouldWaitForRundeckJob, shouldFailTheBuild, false);
+    }
+
     @DataBoundConstructor
     public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs) {
