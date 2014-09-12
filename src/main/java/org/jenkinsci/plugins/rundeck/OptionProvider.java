@@ -160,12 +160,7 @@ public class OptionProvider {
             return null;
         }
 
-        TopLevelItem item = Hudson.getInstance().getItem(projectName);
-        if (AbstractProject.class.isInstance(item)) {
-            return (AbstractProject<?, ?>) item;
-        }
-
-        return null;
+        return Hudson.getInstance().getItemByFullName(projectName, AbstractProject.class);
     }
 
     /**
