@@ -242,7 +242,7 @@ public class RundeckNotifier extends Notifier {
         // http://groups.google.com/group/rundeck-discuss/browse_thread/thread/94a6833b84fdc10b
         Matcher matcher = TOKEN_ARTIFACT_NAME_PATTERN.matcher(input);
         int idx = 0;
-        while (matcher.find(idx)) {
+        while (matcher.reset(input).find(idx)) {
             idx = matcher.end();
             String regex = matcher.group(1);
             Pattern pattern = Pattern.compile(regex);
