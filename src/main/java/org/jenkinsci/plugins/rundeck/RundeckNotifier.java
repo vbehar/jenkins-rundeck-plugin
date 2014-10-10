@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.List;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -27,6 +28,8 @@ import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.api.domain.RundeckOutput;
+import org.rundeck.api.domain.RundeckOutputEntry;
 
 /**
  * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
@@ -53,15 +56,24 @@ public class RundeckNotifier extends Notifier {
 
     private final Boolean shouldFailTheBuild;
 
-    @DataBoundConstructor
+    private final Boolean includeRundeckLogs;
+
     public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
+       this(jobId, options, nodeFilters, tag,
+            shouldWaitForRundeckJob, shouldFailTheBuild, false);
+    }
+
+    @DataBoundConstructor
+    public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
+            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs) {
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
         this.tag = tag;
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
+        this.includeRundeckLogs = includeRundeckLogs;
     }
 
     @Override
@@ -188,6 +200,21 @@ public class RundeckNotifier extends Notifier {
                 }
                 listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
                         + execution.getDuration() + ", with status : " + execution.getStatus());
+
+                if (Boolean.TRUE.equals(includeRundeckLogs)) {
+                   listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
+                   RundeckOutput rundeckOutput = rundeck.getJobExecutionOutput(execution.getId(), 0, 0, 0);
+                   if (null != rundeckOutput) {
+                      List<RundeckOutputEntry> logEntries = rundeckOutput.getLogEntries();
+                         if (null != logEntries) {
+                            for (int i=0; i<logEntries.size(); i++) {
+                               RundeckOutputEntry rundeckOutputEntry = (RundeckOutputEntry)logEntries.get(i);
+                               listener.getLogger().println(rundeckOutputEntry.getMessage());
+                            }
+                         }
+                   }
+                   listener.getLogger().println("END RUNDECK LOG OUTPUT");
+                }
 
                 switch (execution.getStatus()) {
                     case SUCCEEDED:
@@ -317,6 +344,10 @@ public class RundeckNotifier extends Notifier {
         return shouldFailTheBuild;
     }
 
+    public Boolean getIncludeRundeckLogs() {
+        return includeRundeckLogs;
+    }
+
     @Override
     public RundeckDescriptor getDescriptor() {
         return (RundeckDescriptor) super.getDescriptor();
@@ -374,7 +405,8 @@ public class RundeckNotifier extends Notifier {
                                        formData.getString("nodeFilters"),
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldWaitForRundeckJob"),
-                                       formData.getBoolean("shouldFailTheBuild"));
+                                       formData.getBoolean("shouldFailTheBuild"),
+                                       formData.getBoolean("includeRundeckLogs"));
         }
 
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
