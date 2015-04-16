@@ -8,8 +8,8 @@ import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckJob;
 
 /**
- * {@link Action} used to display a RunDeck icon with a link to the RunDeck job page, and some information about the
- * RunDeck job, on the Jenkins job page.
+ * {@link Action} used to display a Rundeck icon with a link to the Rundeck job page, and some information about the
+ * Rundeck job, on the Jenkins job page.
  * 
  * @author Vincent Behar
  */
@@ -22,11 +22,11 @@ public class RundeckJobProjectLinkerAction implements Action {
     private final String rundeckJobUrl;
 
     /**
-     * Load the RunDeck job details (name, description, and so on) using the RunDeck API.
+     * Load the Rundeck job details (name, description, and so on) using the Rundeck API.
      * 
-     * @param rundeck client used for talking to the RunDeck API
-     * @param rundeckJobId ID of the RunDeck job
-     * @throws RundeckApiException in case of error while loading the job details from RunDeck API
+     * @param rundeck client used for talking to the Rundeck API
+     * @param rundeckJobId ID of the Rundeck job
+     * @throws RundeckApiException in case of error while loading the job details from Rundeck API
      * @throws IllegalArgumentException if rundeck or rundeckJobId is null
      */
     public RundeckJobProjectLinkerAction(RundeckClient rundeck, String rundeckJobId) throws RundeckApiException,
@@ -40,9 +40,9 @@ public class RundeckJobProjectLinkerAction implements Action {
     }
 
     /**
-     * Build the absolute url to the RunDeck job page.
+     * Build the absolute url to the Rundeck job page.
      * 
-     * @return the absolute url to the RunDeck job page, or null if unable to build it
+     * @return the absolute url to the Rundeck job page, or null if unable to build it
      */
     private String buildRundeckJobUrl() {
         StringBuilder url = new StringBuilder();

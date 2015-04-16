@@ -12,7 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The cause of a RunDeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the RunDeck
+ * The cause of a Rundeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the Rundeck
  * notification).
  * 
  * @author Vincent Behar
@@ -26,7 +26,7 @@ public class RundeckCause extends Cause {
     /**
      * Instantiate a new cause for the given execution
      * 
-     * @param execution at the origin of the RunDeck notification
+     * @param execution at the origin of the Rundeck notification
      */
     public RundeckCause(RundeckExecution execution) {
         super();
@@ -101,7 +101,7 @@ public class RundeckCause extends Cause {
         /**
          * Instantiate a new action, which will use the data from the given execution
          * 
-         * @param execution at the origin of the RunDeck notification
+         * @param execution at the origin of the Rundeck notification
          */
         public RundeckExecutionEnvironmentContributingAction(RundeckExecution execution) {
             super();
@@ -151,7 +151,7 @@ public class RundeckCause extends Cause {
         }
 
         public String getDisplayName() {
-            return execution != null ? "Started by RunDeck Execution #" + execution.getId() : null;
+            return execution != null ? "Started by Rundeck Execution #" + execution.getId() : null;
         }
 
         public String getIconFileName() {

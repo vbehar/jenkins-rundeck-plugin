@@ -19,7 +19,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * Option provider for Rundeck - see http://rundeck.org/docs/manual/job-options.html#option-model-provider
+ * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
  * 
  * @author Vincent Behar
  */

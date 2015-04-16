@@ -21,7 +21,7 @@ import org.rundeck.api.parser.ParserHelper;
 public class WebHookListener {
 
     public void doIndex(StaplerRequest request, StaplerResponse response) throws IOException {
-        // read request body / parse RunDeck execution
+        // read request body / parse Rundeck execution
         Document document = ParserHelper.loadDocument(request.getInputStream());
         IOUtils.closeQuietly(request.getInputStream());
         ExecutionParser parser = new ExecutionParser("notification/executions/execution");
