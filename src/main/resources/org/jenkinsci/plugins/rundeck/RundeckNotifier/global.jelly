@@ -16,6 +16,6 @@
       <f:textbox name="rundeck.apiversion" value="${descriptor.getRundeckInstance().getVersion()}" />
     </f:entry>
     <f:validateButton title="Test Connection" progress="Testing..." method="testConnection"
-      with="rundeck.url,rundeck.login,rundeck.password,rundeck.authtoken" />
+      with="rundeck.url,rundeck.login,rundeck.password,rundeck.authtoken,rundeck.apiversion" />
   </f:section>
 </j:jelly>
