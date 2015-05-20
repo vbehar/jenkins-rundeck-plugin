@@ -386,6 +386,24 @@ public class RundeckNotifier extends Notifier {
             return super.configure(req, json);
         }
 
+	public void setConfig(String url, String authtoken, int apiversion) {
+	    RundeckClientBuilder builder = RundeckClient.builder();
+	    builder.url(url);
+	    builder.token(authtoken);
+	    builder.version(apiversion);
+	    rundeckInstance=builder.build();
+	    save();
+	}
+
+	public void setConfig(String url, String login, String password, int apiversion) {
+	    RundeckClientBuilder builder = RundeckClient.builder();
+	    builder.url(url);
+	    builder.login(login, password);
+	    builder.version(apiversion);
+	    rundeckInstance=builder.build();
+	    save();
+	}
+
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             String jobIdentifier = formData.getString("jobIdentifier");
