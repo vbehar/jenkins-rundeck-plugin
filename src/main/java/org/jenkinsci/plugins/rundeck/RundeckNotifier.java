@@ -60,8 +60,7 @@ public class RundeckNotifier extends Notifier {
 
     public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
-       this(jobId, options, nodeFilters, tag,
-            shouldWaitForRundeckJob, shouldFailTheBuild, false);
+       this(jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false);
     }
 
     @DataBoundConstructor
@@ -377,7 +376,7 @@ public class RundeckNotifier extends Notifier {
                 if (json.optInt("apiversion") > 0) {
                     builder.version(json.getInt("apiversion"));
                 }
-                rundeckInstance=builder.build();
+                rundeckInstance = builder.build();
             } catch (IllegalArgumentException e) {
                 rundeckInstance = null;
             }
@@ -386,23 +385,23 @@ public class RundeckNotifier extends Notifier {
             return super.configure(req, json);
         }
 
-	public void setConfig(String url, String authtoken, int apiversion) {
-	    RundeckClientBuilder builder = RundeckClient.builder();
-	    builder.url(url);
-	    builder.token(authtoken);
-	    builder.version(apiversion);
-	    rundeckInstance=builder.build();
-	    save();
-	}
+        public void setConfig(String url, String authtoken, int apiversion) {
+            RundeckClientBuilder builder = RundeckClient.builder();
+            builder.url(url);
+            builder.token(authtoken);
+            builder.version(apiversion);
+            rundeckInstance = builder.build();
+            save();
+        }
 
-	public void setConfig(String url, String login, String password, int apiversion) {
-	    RundeckClientBuilder builder = RundeckClient.builder();
-	    builder.url(url);
-	    builder.login(login, password);
-	    builder.version(apiversion);
-	    rundeckInstance=builder.build();
-	    save();
-	}
+        public void setConfig(String url, String login, String password, int apiversion) {
+            RundeckClientBuilder builder = RundeckClient.builder();
+            builder.url(url);
+            builder.login(login, password);
+            builder.version(apiversion);
+            rundeckInstance = builder.build();
+            save();
+        }
 
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
@@ -437,7 +436,7 @@ public class RundeckNotifier extends Notifier {
             RundeckClientBuilder builder = RundeckClient.builder().url(url);
             if (null != apiversion && apiversion > 0) {
                 builder.version(apiversion);
-            }else {
+            } else {
                 builder.version(RundeckClient.API_VERSION);
             }
             try {
