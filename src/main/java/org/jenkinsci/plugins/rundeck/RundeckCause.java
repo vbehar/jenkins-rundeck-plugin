@@ -7,7 +7,6 @@ import hudson.model.Cause;
 import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.domain.RundeckExecution;
 
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 

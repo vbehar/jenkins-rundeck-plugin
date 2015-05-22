@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.TopLevelItem;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Run;
