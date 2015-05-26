@@ -271,7 +271,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     private SubversionSCM createScm() throws Exception {
         File emptyRepository = new CopyExisting(getClass().getResource("empty-svn-repository.zip")).allocate();
-        return new SubversionSCM("file://" + emptyRepository.getPath());
+        return new SubversionSCM("file://" + emptyRepository.toURI().getPath());
     }
 
     private void addScmCommit(FilePath workspace, String commitMessage) throws Exception {
