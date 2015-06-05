@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
+import static java.lang.String.format;
+
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
@@ -25,6 +27,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.api.*;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
+import org.rundeck.api.domain.RundeckAbort;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
@@ -43,6 +46,8 @@ public class RundeckNotifier extends Notifier {
 
     /** Pattern used for extracting the job reference (project:group/name) */
     private static final transient Pattern JOB_REFERENCE_PATTERN = Pattern.compile("^([^:]+?):(.*?)\\/?([^/]+)$");
+
+    private static final int DELAY_BETWEEN_POLLS_IN_MILLIS = 5000;
 
     private final String jobId;
 
@@ -182,37 +187,15 @@ public class RundeckNotifier extends Notifier {
                     .setNodeFilters(parseProperties(nodeFilters, build, listener))
                     .build());
 
-            listener.getLogger().println("Notification succeeded ! Execution #" + execution.getId() + ", at "
-                    + execution.getUrl() + " (status : " + execution.getStatus() + ")");
+            listener.getLogger().printf("Notification succeeded ! Execution #%d, at %s (status : %s)%n",
+                    execution.getId(), execution.getUrl(), execution.getStatus());
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getUrl()));
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
-                listener.getLogger().println("Waiting for Rundeck execution to finish...");
-                while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        listener.getLogger().println("Oops, interrupted ! " + e.getMessage());
-                        break;
-                    }
-                    execution = rundeck.getExecution(execution.getId());
-                }
-                listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
-                        + execution.getDuration() + ", with status : " + execution.getStatus());
+                execution = waitForRundeckExecutionToFinishAndReturnIt(rundeck, listener, execution);
 
                 if (Boolean.TRUE.equals(includeRundeckLogs)) {
-                   listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
-                   RundeckOutput rundeckOutput = rundeck.getJobExecutionOutput(execution.getId(), 0, 0, 0);
-                   if (null != rundeckOutput) {
-                      List<RundeckOutputEntry> logEntries = rundeckOutput.getLogEntries();
-                         if (null != logEntries) {
-                            for (int i=0; i<logEntries.size(); i++) {
-                               RundeckOutputEntry rundeckOutputEntry = (RundeckOutputEntry)logEntries.get(i);
-                               listener.getLogger().println(rundeckOutputEntry.getMessage());
-                            }
-                         }
-                   }
-                   listener.getLogger().println("END RUNDECK LOG OUTPUT");
+                    getAndPrintRundeckLogsForExecution(rundeck, listener, execution.getId());
                 }
 
                 switch (execution.getStatus()) {
@@ -220,9 +203,10 @@ public class RundeckNotifier extends Notifier {
                         return true;
                     case ABORTED:
                     case FAILED:
+                    case RUNNING:   //possible if it was unable to abort execution after an interruption
                         return false;
                     default:
-                        return true;
+                        throw new IllegalStateException(format("Unexpected executions status: %s", execution.getStatus()));
                 }
             } else {
                 return true;
@@ -245,7 +229,7 @@ public class RundeckNotifier extends Notifier {
 
     /**
      * Parse the given input (should be in the Java-Properties syntax) and expand Jenkins environment variables.
-     * 
+     *
      * @param input specified in the Java-Properties syntax (multi-line, key and value separated by = or :)
      * @param build for retrieving Jenkins environment variables
      * @param listener for retrieving Jenkins environment variables and logging the errors
@@ -289,6 +273,42 @@ public class RundeckNotifier extends Notifier {
             listener.getLogger().println("Error : " + e.getMessage());
             return null;
         }
+    }
+
+    private RundeckExecution waitForRundeckExecutionToFinishAndReturnIt(RundeckClient rundeck, BuildListener listener,
+                                                                        RundeckExecution execution) {
+        listener.getLogger().println("Waiting for Rundeck execution to finish...");
+        try {
+            while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+                Thread.sleep(DELAY_BETWEEN_POLLS_IN_MILLIS);
+                execution = rundeck.getExecution(execution.getId());
+            }
+            listener.getLogger().printf("Rundeck execution #%d finished in %s, with status : %s%n", execution.getId(),
+                    execution.getDuration(), execution.getStatus());
+        } catch (InterruptedException e) {
+            listener.getLogger().println("Waiting was interrupted. Probably build was cancelled. Reason: " + e);
+            listener.getLogger().println("Trying to abort Rundeck execution...");
+            RundeckAbort rundeckAbort = rundeck.abortExecution(execution.getId());
+            listener.getLogger().printf("Abort status: %s%n", rundeckAbort.getStatus());
+            execution = rundeck.getExecution(execution.getId());
+            listener.getLogger().printf("Rundeck execution #%d aborted after %s, with status : %s%n", execution.getId(),
+                    execution.getDuration(), execution.getStatus());
+        }
+        return execution;
+    }
+
+    private void getAndPrintRundeckLogsForExecution(RundeckClient rundeck, BuildListener listener, Long executionId) {
+        listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
+        RundeckOutput rundeckOutput = rundeck.getExecutionOutput(executionId, 0, 0, 0);
+        if (null != rundeckOutput) {
+            List<RundeckOutputEntry> logEntries = rundeckOutput.getLogEntries();
+            if (null != logEntries) {
+                for (RundeckOutputEntry rundeckOutputEntry : logEntries) {
+                    listener.getLogger().println(rundeckOutputEntry.getMessage());
+                }
+            }
+        }
+        listener.getLogger().println("END RUNDECK LOG OUTPUT");
     }
 
     @Override
