@@ -17,6 +17,9 @@
   <f:entry title="Include Rundeck job output? (NOTE: requires Wait for Rundeck job to finish)" field="includeRundeckLogs">
     <f:checkbox />
   </f:entry>
+  <f:entry title="Tail Logging? (NOTE: requires Wait for Rundeck job to finish & Include Rundeck job output)" field="tailLog">
+    <f:checkbox />
+  </f:entry>
   <f:entry title="Should fail the build ?" field="shouldFailTheBuild">
     <f:checkbox />
   </f:entry>
