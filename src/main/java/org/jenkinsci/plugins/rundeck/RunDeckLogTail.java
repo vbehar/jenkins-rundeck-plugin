@@ -28,10 +28,9 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
     private final long sleepUnmodified;
     private final long sleepModified;
 
-    
-
     /**
      * Standard constructor that contains sensible defaults for handling the API calls correctly.
+     * 
      * @param rundeckClient
      * @param executionId
      */
@@ -40,14 +39,22 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
     }
 
     /**
-     * Extended constructor containing all the variables that can be set. 
-     * @param rundeckClient the runDeckClient
-     * @param executionId the id of the RunDeck job
-     * @param maxlines the maximum number of lines to fetch on each API call
-     * @param maxRetries the maximum number of retry attempts if the api call fails
-     * @param sleepRetry sleep time in ms that will be triggered if a api call fails
-     * @param sleepUnmodified sleep time in ms when the results are unmodified
-     * @param sleepModified sleep time in ms when the results are modified.
+     * Extended constructor containing all the variables that can be set.
+     * 
+     * @param rundeckClient
+     *            the runDeckClient
+     * @param executionId
+     *            the id of the RunDeck job
+     * @param maxlines
+     *            the maximum number of lines to fetch on each API call
+     * @param maxRetries
+     *            the maximum number of retry attempts if the api call fails
+     * @param sleepRetry
+     *            sleep time in ms that will be triggered if a api call fails
+     * @param sleepUnmodified
+     *            sleep time in ms when the results are unmodified
+     * @param sleepModified
+     *            sleep time in ms when the results are modified.
      */
     public RunDeckLogTail(RundeckClient rundeckClient, Long executionId, int maxlines, int maxRetries, long sleepRetry, long sleepUnmodified, long sleepModified) {
         this.rundeckClient = rundeckClient;
@@ -57,7 +64,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         this.sleepRetry = sleepRetry;
         this.sleepUnmodified = sleepUnmodified;
         this.sleepModified = sleepModified;
-        
+
     }
 
     public RunDeckLogTailIterator iterator() {
@@ -70,7 +77,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         protected long lastmod;
         protected boolean completed;
         protected int retries = 0;
-        
+
         protected List<RundeckOutputEntry> next;
 
         /**
@@ -100,7 +107,8 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
                     }
                     retries = 0;
                 } catch (RundeckApiException e) {
-                    log.log(Level.WARNING, "Caught RuntimeException while handling API call for logs. Will retry for max [{0}] times or rethrow exception.", new Object[]{maxRetries, e});
+                    log.log(Level.WARNING, "Caught RuntimeException while handling API call for logs. Will retry for max [{0}] times or rethrow exception.", new Object[] {
+                            maxRetries, e });
                     sleepOrThrowException(e);
                 }
             } catch (InterruptedException e) {
@@ -112,7 +120,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
 
         private void sleepOrThrowException(RuntimeException e) throws InterruptedException {
             if (retries >= maxRetries) {
-                log.log(Level.SEVERE, "Giving up after [{0}] retries...", new Object[] {maxRetries, e});
+                log.log(Level.SEVERE, "Giving up after [{0}] retries...", new Object[] { maxRetries, e });
                 throw e;
             }
             retries++;
@@ -122,8 +130,8 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         private boolean updateIterationState(RundeckOutput rundeckOutput) {
             offset = rundeckOutput.getOffset();
             lastmod = defaultLong(rundeckOutput.getLastModified(), 0L);
-            boolean c = Boolean.TRUE.equals(rundeckOutput.isCompleted()); 
-            log.log(Level.FINE, "Offset is now set to [{0}], lastmod is now set to [{1}], completed is now set to [{2}]", new Object[] { offset, lastmod,c });
+            boolean c = Boolean.TRUE.equals(rundeckOutput.isCompleted());
+            log.log(Level.FINE, "Offset is now set to [{0}], lastmod is now set to [{1}], completed is now set to [{2}]", new Object[] { offset, lastmod, c });
             return c;
         }
 

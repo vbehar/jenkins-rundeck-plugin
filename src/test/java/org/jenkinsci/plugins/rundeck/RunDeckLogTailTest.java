@@ -103,7 +103,7 @@ public class RunDeckLogTailTest {
             assertEquals("fail!", e.getMessage());
         }
     }
-    
+
     @Test
     public void iteratorIsInterrupted() throws InterruptedException {
         new NonStrictExpectations() {
