@@ -102,9 +102,8 @@ public class RunDeckLogTailTest {
         } catch (RundeckApiException e) {
             assertEquals("fail!", e.getMessage());
         }
-
     }
-
+    
     @Test
     public void iteratorIsInterrupted() throws InterruptedException {
         new NonStrictExpectations() {
@@ -199,7 +198,7 @@ public class RunDeckLogTailTest {
     }
 
     public void assertMessagesPresentInOrder(List<RundeckOutputEntry> rundeckOutputEntries, String... messages) {
-
+        assertEquals(rundeckOutputEntries.size(), messages.length);
         int i = 0;
         for (RundeckOutputEntry rundeckOutputEntry : rundeckOutputEntries) {
             assertEquals(rundeckOutputEntry.getMessage(), messages[i]);

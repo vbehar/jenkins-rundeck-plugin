@@ -6,10 +6,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckClient;
-import org.rundeck.api.RundeckClientBuilder;
 import org.rundeck.api.domain.RundeckOutput;
 import org.rundeck.api.domain.RundeckOutputEntry;
 
@@ -30,7 +28,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
     private final long sleepUnmodified;
     private final long sleepModified;
 
-    protected List<RundeckOutputEntry> next;
+    
 
     /**
      * Standard constructor that contains sensible defaults for handling the API calls correctly.
@@ -59,7 +57,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         this.sleepRetry = sleepRetry;
         this.sleepUnmodified = sleepUnmodified;
         this.sleepModified = sleepModified;
-        next = new ArrayList<RundeckOutputEntry>(maxlines);
+        
     }
 
     public RunDeckLogTailIterator iterator() {
@@ -71,7 +69,9 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         protected int offset;
         protected long lastmod;
         protected boolean completed;
-        protected int retries;
+        protected int retries = 0;
+        
+        protected List<RundeckOutputEntry> next;
 
         /**
          * This will clear and update the result set for the @link {@link #next()} call using the RunDeck Client to perform an API call, it will also update the
@@ -85,19 +85,20 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
                 return false;
             }
 
-            next.clear();
-            
+            next = new ArrayList<RundeckOutputEntry>(maxlines);
+
             try {
                 try {
                     log.log(Level.FINE, "Performing API call for executionId [{0}], using offset [{1}] and lastmod [{2}], fetching a maximum of [{3}] lines.", new Object[] {
                             executionId, offset, lastmod, maxlines });
                     RundeckOutput rundeckOutput = rundeckClient.getExecutionOutput(executionId, offset, lastmod, maxlines);
-                    updateIterationState(rundeckOutput);
+                    completed = updateIterationState(rundeckOutput);
                     addRunDeckOutputEntriesToResults(rundeckOutput);
                     if (!completed) {
-                        log.log(Level.INFO, "RunDecks Execution Output is not yet completed. Initializing pause to prevent API hammering");
+                        log.log(Level.FINE, "RunDecks Execution Output is not yet completed. Initializing pause to prevent API hammering");
                         handleSleep(rundeckOutput.isUnmodified());
                     }
+                    retries = 0;
                 } catch (RundeckApiException e) {
                     log.log(Level.WARNING, "Caught RuntimeException while handling API call for logs. Will retry for max [{0}] times or rethrow exception.", new Object[]{maxRetries, e});
                     sleepOrThrowException(e);
@@ -118,12 +119,12 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
             Thread.sleep(sleepRetry);
         }
 
-        private void updateIterationState(RundeckOutput rundeckOutput) {
+        private boolean updateIterationState(RundeckOutput rundeckOutput) {
             offset = rundeckOutput.getOffset();
             lastmod = defaultLong(rundeckOutput.getLastModified(), 0L);
-            completed = Boolean.TRUE.equals(rundeckOutput.isCompleted());
-            log.log(Level.FINE, "Offset is now set to [{0}], lastmod is now set to [{1}], completed is now set to [{2}]", new Object[] { offset, lastmod,
-                    completed });
+            boolean c = Boolean.TRUE.equals(rundeckOutput.isCompleted()); 
+            log.log(Level.FINE, "Offset is now set to [{0}], lastmod is now set to [{1}], completed is now set to [{2}]", new Object[] { offset, lastmod,c });
+            return c;
         }
 
         private long defaultLong(Long value, long defaultLong) {

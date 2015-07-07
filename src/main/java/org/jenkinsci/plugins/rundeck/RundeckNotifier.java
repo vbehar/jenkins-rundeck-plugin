@@ -386,6 +386,10 @@ public class RundeckNotifier extends Notifier {
     public Boolean getIncludeRundeckLogs() {
         return includeRundeckLogs;
     }
+    
+    public Boolean getTailLog() {
+        return tailLog;
+    }
 
     @Override
     public RundeckDescriptor getDescriptor() {
