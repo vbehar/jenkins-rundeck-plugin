@@ -122,10 +122,10 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         }
 
         private boolean checkCompletionState(RundeckOutput rundeckOutput) {
-            
+
             boolean outputCompleted = Boolean.TRUE.equals(rundeckOutput.isCompleted());
-            boolean execCompleted =  Boolean.TRUE.equals(rundeckOutput.isExecCompleted());
-            log.log(Level.FINE, "Checking completetion state with outputCompleted [{0}] and execCompleted [{1}]", new Object[] {outputCompleted, execCompleted});
+            boolean execCompleted = Boolean.TRUE.equals(rundeckOutput.isExecCompleted());
+            log.log(Level.FINE, "Checking completetion state with outputCompleted [{0}] and execCompleted [{1}]", new Object[] { outputCompleted, execCompleted });
             return outputCompleted && execCompleted;
         }
 
@@ -140,9 +140,9 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
 
         private boolean updateIterationState(RundeckOutput rundeckOutput) {
             int nextOffset = rundeckOutput.getOffset();
-            if (offset != nextOffset){
+            if (offset != nextOffset) {
                 offset = nextOffset;
-                log.log(Level.FINE, "Offset is now set to [{0}]", new Object[] { offset});
+                log.log(Level.FINE, "Offset is now set to [{0}]", new Object[] { offset });
                 return true;
             }
             return false;
