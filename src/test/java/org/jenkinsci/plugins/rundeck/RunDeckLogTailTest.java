@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.List;
 
+import mockit.Expectations;
 import mockit.Mocked;
 import mockit.NonStrictExpectations;
 
@@ -48,14 +49,13 @@ public class RunDeckLogTailTest {
         new NonStrictExpectations() {
             {
                 //@formatter:off
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, anyLong, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 50, 2000L, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 100, 3000L, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 50, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 100, anyLong, 2); result = rundeckOutput;
                 rundeckOutput.getOffset(); returns(50, 100, 150);
-                rundeckOutput.getLastModified(); returns(1000L, 2000L, 3000L);
+                rundeckOutput.isExecCompleted(); returns (false, false, true);
                 rundeckOutput.getLogEntries(); returns(createLogEntries(new String[] {"lorem", "ipsum"}), createLogEntries(new String[] {"dolar", "sit"}), createLogEntries(new String[] {"amet"}));;
                 rundeckOutput.isCompleted(); returns (false, false, true);
-                rundeckOutput.isUnmodified(); returns (false, false);
                 //@formatter:on
             }
         };
@@ -77,10 +77,10 @@ public class RunDeckLogTailTest {
 
     @Test
     public void apiExceptionWillBeCaughtThreeTimesAndThenThrown() throws InterruptedException {
-        new NonStrictExpectations() {
+        new Expectations() {
             {
                 //@formatter:off
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, anyLong, 2); result = new RundeckApiException("fail!"); times = 4;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, anyLong, 2); result = new RundeckApiException("fail!"); times = 4;
                 //@formatter:on
             }
         };
@@ -111,14 +111,11 @@ public class RunDeckLogTailTest {
             @Mocked({ "sleep", "interrupt" })
             final Thread unused = null;
             {
-
                 //@formatter:off
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, anyLong, 2); result = rundeckOutput;
                 rundeckOutput.getOffset(); returns(50);
-                rundeckOutput.getLastModified(); returns(1000L);
                 rundeckOutput.getLogEntries(); returns(createLogEntries(new String[] {"lorem", "ipsum"}));
                 rundeckOutput.isCompleted(); returns (false);
-                rundeckOutput.isUnmodified(); returns (false);
                 Thread.sleep(anyLong); result= new InterruptedException();
                 onInstance(Thread.currentThread()).interrupt();
                 //@formatter:on
@@ -138,14 +135,13 @@ public class RunDeckLogTailTest {
         new NonStrictExpectations() {
             {
                 //@formatter:off
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, 0L, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, 0L, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 50, 2000L, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, 0L, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 50, anyLong, 2); result = rundeckOutput;
                 rundeckOutput.getOffset(); returns(0, 50, 100);
-                rundeckOutput.getLastModified(); returns(null, 1000L, 2000L);
                 rundeckOutput.getLogEntries(); returns(createLogEntries(new String[] {}), createLogEntries(new String[] {}), createLogEntries(new String[] {"dolar", "sit", "amet"}));;
                 rundeckOutput.isCompleted(); returns (null, false, true);
-                rundeckOutput.isUnmodified(); returns (false, true);
+                rundeckOutput.isExecCompleted(); returns (null, false, true);
                 //@formatter:on
             }
         };
@@ -170,14 +166,13 @@ public class RunDeckLogTailTest {
         new NonStrictExpectations() {
             {
                 //@formatter:off
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 0, anyLong, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 50, 2000L, 2); result = rundeckOutput;
-                rundeckClient.getExecutionOutput(EXECUTION_ID, 50, 2000L, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 0, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 50, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 50, anyLong, 2); result = rundeckOutput;
                 rundeckOutput.getOffset(); returns(50, 50, 150);
-                rundeckOutput.getLastModified(); returns(1000L, 1000L, 3000L);
                 rundeckOutput.getLogEntries(); returns(createLogEntries(new String[] {"lorem", "ipsum"}), createLogEntries(new String[] {}), createLogEntries(new String[] {"dolar", "sit", "amet"}));;
                 rundeckOutput.isCompleted(); returns (false, false, true);
-                rundeckOutput.isUnmodified(); returns (false, true);
+                rundeckOutput.isExecCompleted(); returns (false, false, true);
                 //@formatter:on
             }
         };

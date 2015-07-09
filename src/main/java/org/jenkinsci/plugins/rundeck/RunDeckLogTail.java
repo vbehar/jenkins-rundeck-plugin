@@ -8,8 +8,10 @@ import java.util.logging.Logger;
 
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckClient;
+import org.rundeck.api.RundeckClientBuilder;
 import org.rundeck.api.domain.RundeckOutput;
 import org.rundeck.api.domain.RundeckOutputEntry;
+import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 
 /**
  * This class implements logtailing for Rundeck.
@@ -74,7 +76,6 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
     protected class RunDeckLogTailIterator implements Iterator<List<RundeckOutputEntry>> {
 
         protected int offset;
-        protected long lastmod;
         protected boolean completed;
         protected int retries = 0;
 
@@ -96,14 +97,16 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
 
             try {
                 try {
-                    log.log(Level.FINE, "Performing API call for executionId [{0}], using offset [{1}] and lastmod [{2}], fetching a maximum of [{3}] lines.", new Object[] {
-                            executionId, offset, lastmod, maxlines });
-                    RundeckOutput rundeckOutput = rundeckClient.getExecutionOutput(executionId, offset, lastmod, maxlines);
-                    completed = updateIterationState(rundeckOutput);
+                    log.log(Level.FINE, "Performing API call for executionId [{0}], using offset [{1}]. fetching a maximum of [{2}] lines.", new Object[] {
+                            executionId, offset, maxlines });
+                    RundeckOutput rundeckOutput = rundeckClient.getExecutionOutputState(executionId, false, offset, -1, maxlines);
+
+                    completed = checkCompletionState(rundeckOutput);
+                    boolean offsetChanged = updateIterationState(rundeckOutput);
                     addRunDeckOutputEntriesToResults(rundeckOutput);
                     if (!completed) {
                         log.log(Level.FINE, "RunDecks Execution Output is not yet completed. Initializing pause to prevent API hammering");
-                        handleSleep(rundeckOutput.isUnmodified());
+                        handleSleep(offsetChanged);
                     }
                     retries = 0;
                 } catch (RundeckApiException e) {
@@ -118,6 +121,14 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
             return true;
         }
 
+        private boolean checkCompletionState(RundeckOutput rundeckOutput) {
+            
+            boolean outputCompleted = Boolean.TRUE.equals(rundeckOutput.isCompleted());
+            boolean execCompleted =  Boolean.TRUE.equals(rundeckOutput.isExecCompleted());
+            log.log(Level.FINE, "Checking completetion state with outputCompleted [{0}] and execCompleted [{1}]", new Object[] {outputCompleted, execCompleted});
+            return outputCompleted && execCompleted;
+        }
+
         private void sleepOrThrowException(RuntimeException e) throws InterruptedException {
             if (retries >= maxRetries) {
                 log.log(Level.SEVERE, "Giving up after [{0}] retries...", new Object[] { maxRetries, e });
@@ -128,35 +139,35 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         }
 
         private boolean updateIterationState(RundeckOutput rundeckOutput) {
-            offset = rundeckOutput.getOffset();
-            lastmod = defaultLong(rundeckOutput.getLastModified(), 0L);
-            boolean c = Boolean.TRUE.equals(rundeckOutput.isCompleted());
-            log.log(Level.FINE, "Offset is now set to [{0}], lastmod is now set to [{1}], completed is now set to [{2}]", new Object[] { offset, lastmod, c });
-            return c;
-        }
-
-        private long defaultLong(Long value, long defaultLong) {
-            if (value == null) {
-                return defaultLong;
+            int nextOffset = rundeckOutput.getOffset();
+            if (offset != nextOffset){
+                offset = nextOffset;
+                log.log(Level.FINE, "Offset is now set to [{0}]", new Object[] { offset});
+                return true;
             }
-            return value;
+            return false;
         }
 
         private void addRunDeckOutputEntriesToResults(RundeckOutput rundeckOutput) {
 
             List<RundeckOutputEntry> runDeckOutputEntries = rundeckOutput.getLogEntries();
             if (runDeckOutputEntries != null) {
-                next.addAll(runDeckOutputEntries);
+                log.log(Level.FINE, "Got [{0}] rundeckOutputEntries, filtering out empty results and appending resultset.", runDeckOutputEntries.size());
+                for (RundeckOutputEntry rundeckOutputEntry : runDeckOutputEntries) {
+                    if (rundeckOutputEntry.getMessage() != null) {
+                        next.add(rundeckOutputEntry);
+                    }
+                }
             }
         }
 
-        private void handleSleep(boolean unmodified) throws InterruptedException {
-            if (unmodified) {
-                log.log(Level.FINE, "Results are unmodified, sleeping for [{0}] ms.", sleepUnmodified);
-                Thread.sleep(sleepUnmodified);
-            } else {
-                log.log(Level.FINE, "Results are modified, sleeping for [{0}] ms.", sleepModified);
+        private void handleSleep(boolean offsetChanged) throws InterruptedException {
+            if (offsetChanged) {
+                log.log(Level.FINE, "Offset has changed, sleeping for [{0}] ms.", sleepModified);
                 Thread.sleep(sleepModified);
+            } else {
+                log.log(Level.FINE, "Results hasn't changed, sleeping for [{0}] ms.", sleepUnmodified);
+                Thread.sleep(sleepUnmodified);
             }
         }
 
