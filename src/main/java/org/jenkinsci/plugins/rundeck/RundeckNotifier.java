@@ -220,6 +220,8 @@ public class RundeckNotifier extends Notifier {
                         return true;
                     case ABORTED:
                     case FAILED:
+                        if (getShouldFailTheBuild())
+                           build.setResult(Result.FAILURE);
                         return false;
                     default:
                         return true;
