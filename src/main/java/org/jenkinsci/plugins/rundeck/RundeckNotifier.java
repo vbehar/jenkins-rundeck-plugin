@@ -4,8 +4,16 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.Util;
-import hudson.model.*;
+import hudson.model.Action;
+import hudson.model.BuildBadgeAction;
+import hudson.model.BuildListener;
+import hudson.model.Result;
+import hudson.model.TopLevelItem;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.Cause;
 import hudson.model.Cause.UpstreamCause;
+import hudson.model.Hudson;
 import hudson.model.Run.Artifact;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
@@ -13,18 +21,25 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
+
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.List;
+
 import net.sf.json.JSONObject;
+
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rundeck.RunDeckLogTail.RunDeckLogTailIterator;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.rundeck.api.*;
+import org.rundeck.api.RunJobBuilder;
+import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
+import org.rundeck.api.RundeckClient;
+import org.rundeck.api.RundeckClientBuilder;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
@@ -57,15 +72,18 @@ public class RundeckNotifier extends Notifier {
     private final Boolean shouldFailTheBuild;
 
     private final Boolean includeRundeckLogs;
+    
+    private final Boolean tailLog;
+
 
     public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
-       this(jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false);
+       this(jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false);
     }
 
     @DataBoundConstructor
     public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
-            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs) {
+            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog) {
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
@@ -73,6 +91,7 @@ public class RundeckNotifier extends Notifier {
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
         this.includeRundeckLogs = includeRundeckLogs;
+        this.tailLog = tailLog;
     }
 
     @Override
@@ -188,33 +207,49 @@ public class RundeckNotifier extends Notifier {
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {
                 listener.getLogger().println("Waiting for Rundeck execution to finish...");
-                while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
-                    try {
-                        Thread.sleep(5000);
-                    } catch (InterruptedException e) {
-                        listener.getLogger().println("Oops, interrupted ! " + e.getMessage());
-                        break;
+                if (Boolean.TRUE.equals(includeRundeckLogs) && Boolean.TRUE.equals(tailLog)){
+                    listener.getLogger().println("BEGIN RUNDECK TAILED LOG OUTPUT");
+                    RunDeckLogTail runDeckLogTail = new RunDeckLogTail(rundeck, execution.getId());
+                    RunDeckLogTailIterator runDeckLogTailIterator = runDeckLogTail.iterator();
+                    while(runDeckLogTailIterator.hasNext()){
+                        for (RundeckOutputEntry rundeckOutputEntry : runDeckLogTailIterator.next()) {
+                            listener.getLogger().println(String.format("[%s] [%s] %s", new Object[] {rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage()}));
+                        }
                     }
+                    listener.getLogger().println("END RUNDECK TAILED LOG OUTPUT");
+
                     execution = rundeck.getExecution(execution.getId());
-                }
-                listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
-                        + execution.getDuration() + ", with status : " + execution.getStatus());
+                    logExecutionStatus(listener, execution);
+                } else {
+                    while (ExecutionStatus.RUNNING.equals(execution.getStatus())) {
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            listener.getLogger().println("Oops, interrupted ! " + e.getMessage());
+                            break;
+                        }
+                        execution = rundeck.getExecution(execution.getId());
+                    }
+                    logExecutionStatus(listener, execution);
 
-                if (Boolean.TRUE.equals(includeRundeckLogs)) {
-                   listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
-                   RundeckOutput rundeckOutput = rundeck.getJobExecutionOutput(execution.getId(), 0, 0, 0);
-                   if (null != rundeckOutput) {
-                      List<RundeckOutputEntry> logEntries = rundeckOutput.getLogEntries();
-                         if (null != logEntries) {
-                            for (int i=0; i<logEntries.size(); i++) {
-                               RundeckOutputEntry rundeckOutputEntry = (RundeckOutputEntry)logEntries.get(i);
-                               listener.getLogger().println(rundeckOutputEntry.getMessage());
-                            }
-                         }
-                   }
-                   listener.getLogger().println("END RUNDECK LOG OUTPUT");
+                    if (Boolean.TRUE.equals(includeRundeckLogs)) {
+                       listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
+                       RundeckOutput rundeckOutput = rundeck.getJobExecutionOutput(execution.getId(), 0, 0, 0);
+                       if (null != rundeckOutput) {
+                          List<RundeckOutputEntry> logEntries = rundeckOutput.getLogEntries();
+                             if (null != logEntries) {
+                                for (int i=0; i<logEntries.size(); i++) {
+                                   RundeckOutputEntry rundeckOutputEntry = (RundeckOutputEntry)logEntries.get(i);
+                                   listener.getLogger().println(rundeckOutputEntry.getMessage());
+                                }
+                             }
+                       }
+                       listener.getLogger().println("END RUNDECK LOG OUTPUT");
+                    }
+    
                 }
-
+                
+                
                 switch (execution.getStatus()) {
                     case SUCCEEDED:
                         return true;
@@ -243,6 +278,11 @@ public class RundeckNotifier extends Notifier {
             listener.getLogger().println("Configuration error : " + e.getMessage());
             return false;
         }
+    }
+
+    private void logExecutionStatus(BuildListener listener, RundeckExecution execution) {
+        listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
+                + execution.getDuration() + ", with status : " + execution.getStatus());
     }
 
     /**
@@ -348,6 +388,10 @@ public class RundeckNotifier extends Notifier {
     public Boolean getIncludeRundeckLogs() {
         return includeRundeckLogs;
     }
+    
+    public Boolean getTailLog() {
+        return tailLog;
+    }
 
     @Override
     public RundeckDescriptor getDescriptor() {
@@ -425,7 +469,8 @@ public class RundeckNotifier extends Notifier {
                                        formData.getString("tag"),
                                        formData.getBoolean("shouldWaitForRundeckJob"),
                                        formData.getBoolean("shouldFailTheBuild"),
-                                       formData.getBoolean("includeRundeckLogs"));
+                                       formData.getBoolean("includeRundeckLogs"), 
+                                       formData.getBoolean("tailLog"));
         }
 
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
