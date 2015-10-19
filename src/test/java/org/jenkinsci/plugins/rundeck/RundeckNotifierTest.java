@@ -174,6 +174,36 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
     }
+    public void testMultivalueOptions() throws Exception {
+        String optionString = "option1=value 1\n" +
+                              "nodes=nodename1,nodename2";
+        RundeckNotifier notifier = new RundeckNotifier("1", optionString, null, null, false, true);
+        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient() {
+
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public RundeckExecution triggerJob(RunJob runJob) {
+                Assert.assertEquals(2, runJob.getOptions().size());
+                Assert.assertEquals("value 1", runJob.getOptions().getProperty("option1"));
+                Assert.assertEquals("nodename1,nodename2", runJob.getOptions().getProperty("nodes"));
+                return super.triggerJob(runJob);
+            }
+
+        });
+
+        FreeStyleProject project = createFreeStyleProject("my project name");
+        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
+        assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertTrue(s.contains("Notifying Rundeck..."));
+        assertTrue(s.contains("Notification succeeded !"));
+    }
 
     public void testUpstreamBuildWithTag() throws Exception {
         RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
@@ -260,6 +290,10 @@ public class RundeckNotifierTest extends HudsonTestCase {
         options.setProperty("jobName", "$JOB_NAME");
         options.setProperty("buildNumber", "$BUILD_NUMBER");
 
+        return createOptions(options);
+    }
+
+    private String createOptions(final Properties options) {
         StringWriter writer = new StringWriter();
         try {
             options.store(writer, "this is a comment line");
