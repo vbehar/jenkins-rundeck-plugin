@@ -114,7 +114,7 @@ public class OptionProvider {
         for (Run<?, ?> build : builds) {
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (artifact != null) {
-                String buildName = "#" + build.getNumber() + " - " + build.getTimestampString2();
+                String buildName = build.getDisplayName();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
             }
 
