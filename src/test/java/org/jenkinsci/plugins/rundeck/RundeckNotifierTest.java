@@ -60,7 +60,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testStandardCommitWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
+        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy, #redeploy", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -282,6 +282,9 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Waiting for Rundeck execution to finish..."));
         assertTrue(s.contains("Rundeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
     }
+
+
+
 
     private String createOptions() {
         Properties options = new Properties();
