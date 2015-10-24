@@ -7,6 +7,8 @@ import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -284,6 +286,32 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
 
+    public void testGetTags(){
+
+        RundeckNotifier notifier;
+        String[] tags;
+
+        notifier = new RundeckNotifier("1", null, null, "#deploy", false, true);
+        tags= new String[] {"#deploy"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, null, false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "  ", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "#tag1, #tag2", false, true);
+        tags= new String[] {"#tag1", "#tag2"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+    }
 
 
     private String createOptions() {

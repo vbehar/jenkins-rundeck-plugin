@@ -635,9 +635,17 @@ public class RundeckNotifier extends Notifier {
 
         if (tagsStr == null)
             return new String[0];
-
         List<String> list = new ArrayList<String>(Arrays.asList(tagsStr.split(delimiter)));
-        list.removeAll(Collections.singleton(""));
+
+        for (ListIterator<String> iterator = list.listIterator(); iterator.hasNext(); ) {
+            String tag  = iterator.next();
+            tag=tag.replaceAll("\\s+","").trim();
+            iterator.remove();
+            if (!tag.equals(""))
+                iterator.add(tag);
+
+        }
+
         return list.toArray(new String[list.size()]);
     }
 
