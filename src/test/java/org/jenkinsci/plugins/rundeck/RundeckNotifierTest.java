@@ -7,7 +7,6 @@ import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
