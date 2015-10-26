@@ -23,8 +23,7 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -65,7 +64,7 @@ public class RundeckNotifier extends Notifier {
 
     private final String nodeFilters;
 
-    private final String tag;
+    private final String[] tags;
 
     private final Boolean shouldWaitForRundeckJob;
 
@@ -82,12 +81,12 @@ public class RundeckNotifier extends Notifier {
     }
 
     @DataBoundConstructor
-    public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
+    public RundeckNotifier(String jobId, String options, String nodeFilters, String tagsStr,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog) {
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
-        this.tag = tag;
+        this.tags = extracttags(tagsStr,",");
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
         this.includeRundeckLogs = includeRundeckLogs;
@@ -130,17 +129,19 @@ public class RundeckNotifier extends Notifier {
      * @return true if we should notify Rundeck, false otherwise
      */
     private boolean shouldNotifyRundeck(AbstractBuild<?, ?> build, BuildListener listener) {
-        if (StringUtils.isBlank(tag)) {
+        if (tags.length == 0) {
             listener.getLogger().println("Notifying Rundeck...");
             return true;
         }
 
         // check for the tag in the changelog
         for (Entry changeLog : build.getChangeSet()) {
-            if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
-                listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
-                                             + ") - Notifying Rundeck...");
-                return true;
+            for(String tag: tags) {
+                if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
+                    listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
+                            + ") - Notifying Rundeck...");
+                    return true;
+                }
             }
         }
 
@@ -154,12 +155,14 @@ public class RundeckNotifier extends Notifier {
                     AbstractBuild<?, ?> upstreamBuild = upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
                     if (upstreamBuild != null) {
                         for (Entry changeLog : upstreamBuild.getChangeSet()) {
-                            if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
-                                listener.getLogger().println("Found " + tag + " in changelog (from "
-                                                             + changeLog.getAuthor().getId() + ") in upstream build ("
-                                                             + upstreamBuild.getFullDisplayName()
-                                                             + ") - Notifying Rundeck...");
-                                return true;
+                            for(String tag: tags) {
+                                if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
+                                    listener.getLogger().println("Found " + tag + " in changelog (from "
+                                            + changeLog.getAuthor().getId() + ") in upstream build ("
+                                            + upstreamBuild.getFullDisplayName()
+                                            + ") - Notifying Rundeck...");
+                                    return true;
+                                }
                             }
                         }
                     }
@@ -373,8 +376,8 @@ public class RundeckNotifier extends Notifier {
         return nodeFilters;
     }
 
-    public String getTag() {
-        return tag;
+    public String[] getTags() {
+        return tags;
     }
 
     public Boolean getShouldWaitForRundeckJob() {
@@ -620,6 +623,30 @@ public class RundeckNotifier extends Notifier {
             return executionUrl;
         }
 
+    }
+
+
+    /**
+     *
+     * @param tagsStr
+     * @return
+     */
+    private String[] extracttags(String tagsStr, String delimiter){
+
+        if (tagsStr == null)
+            return new String[0];
+        List<String> list = new ArrayList<String>(Arrays.asList(tagsStr.split(delimiter)));
+
+        for (ListIterator<String> iterator = list.listIterator(); iterator.hasNext(); ) {
+            String tag  = iterator.next();
+            tag=tag.replaceAll("\\s+","").trim();
+            iterator.remove();
+            if (!tag.equals(""))
+                iterator.add(tag);
+
+        }
+
+        return list.toArray(new String[list.size()]);
     }
 
 }

@@ -7,6 +7,7 @@ import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -60,7 +61,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testStandardCommitWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
+        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy, #redeploy", false, false);
         notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
@@ -282,6 +283,35 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Waiting for Rundeck execution to finish..."));
         assertTrue(s.contains("Rundeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
     }
+
+
+    public void testGetTags(){
+
+        RundeckNotifier notifier;
+        String[] tags;
+
+        notifier = new RundeckNotifier("1", null, null, "#deploy", false, true);
+        tags= new String[] {"#deploy"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, null, false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "  ", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("1", null, null, "#tag1, #tag2", false, true);
+        tags= new String[] {"#tag1", "#tag2"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+    }
+
 
     private String createOptions() {
         Properties options = new Properties();
