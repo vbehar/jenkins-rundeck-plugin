@@ -1,4 +1,23 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  
+  <j:set var="instances" value="${descriptor.getRundeckInstances()}"/>
+  <j:if test="${empty(instances)}">
+    <!-- no Rundeck instance is configured, so warn the user now -->
+    <f:entry title="Rundeck Instance">
+      <div class="error">There are no rundeck instances configured.</div>
+    </f:entry>
+  </j:if>
+  <j:if test="${instances.size() gt 0}">
+    <f:entry title="Rundeck Instance: ">
+      <select class="setting-input" name="rundeckInstance">
+        <j:forEach var="inst" items="${instances}">
+          <f:option value="${inst.key}" selected="${inst.key==instance.rundeckInstance}">${inst.key}
+          </f:option>
+        </j:forEach>
+      </select>
+    </f:entry>
+  </j:if>
+  
   <f:entry title="Job Identifier" field="jobIdentifier">
     <f:textbox />
   </f:entry>

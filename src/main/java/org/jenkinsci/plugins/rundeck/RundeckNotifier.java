@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck;
 
+import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
@@ -27,6 +28,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
@@ -58,8 +60,10 @@ public class RundeckNotifier extends Notifier {
     /** Pattern used for extracting the job reference (project:group/name) */
     private static final transient Pattern JOB_REFERENCE_PATTERN = Pattern.compile("^([^:]+?):(.*?)\\/?([^/]+)$");
 
+    private final String rundeckInstance;
+    
     private final String jobId;
-
+    
     private final String options;
 
     private final String nodeFilters;
@@ -75,14 +79,20 @@ public class RundeckNotifier extends Notifier {
     private final Boolean tailLog;
 
 
-    public RundeckNotifier(String jobId, String options, String nodeFilters, String tag,
+    public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
-       this(jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false);
+       this(rundeckInstance, jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false);
     }
 
     @DataBoundConstructor
-    public RundeckNotifier(String jobId, String options, String nodeFilters, String tagsStr,
+    public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tagsStr,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog) {
+        if (StringUtils.isEmpty(rundeckInstance)) {
+            this.rundeckInstance = "Default";
+        }
+        else {
+            this.rundeckInstance = rundeckInstance;
+        }
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
@@ -100,7 +110,7 @@ public class RundeckNotifier extends Notifier {
             return true;
         }
 
-        RundeckClient rundeck = getDescriptor().getRundeckInstance();
+        RundeckClient rundeck = getDescriptor().getRundeckInstance(this.rundeckInstance);
 
         if (rundeck == null) {
             listener.getLogger().println("Rundeck configuration is not valid !");
@@ -339,7 +349,7 @@ public class RundeckNotifier extends Notifier {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
-            return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(), jobId);
+            return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
         } catch (RundeckApiException e) {
             return null;
         } catch (IllegalArgumentException e) {
@@ -404,60 +414,78 @@ public class RundeckNotifier extends Notifier {
     @Extension(ordinal = 1000)
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
 
-        private RundeckClient rundeckInstance;
+        @Deprecated
+        private transient RundeckClient rundeckInstance;
+        
+        @CopyOnWrite
+        private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<String, RundeckClient>();
 
         public RundeckDescriptor() {
             super();
             load();
         }
+        
+        // support backward compatibility
+        protected Object readResolve() { 
+            if (rundeckInstance != null) {
+                Map<String, RundeckClient> instance = new LinkedHashMap<String, RundeckClient>();
+                instance.put("Default", rundeckInstance);
+                this.setRundeckInstances(instance);
+            }
+            return this;
+        }
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            try {
-                RundeckClientBuilder builder = RundeckClient.builder();
-                builder.url(json.getString("url"));
-                if (json.get("authtoken") != null && !"".equals(json.getString("authtoken"))) {
-                    builder.token(json.getString("authtoken"));
-                } else {
-                    builder.login(json.getString("login"), json.getString("password"));
+            
+            JSONArray instances = json.optJSONArray("instance");
+            
+            if (instances == null) {
+                instances = new JSONArray();
+                
+                if (json.optJSONObject("instance") != null) {
+                    instances.add(json.getJSONObject("instance"));
                 }
-
-                if (json.optInt("apiversion") > 0) {
-                    builder.version(json.getInt("apiversion"));
-                }
-                rundeckInstance = builder.build();
-            } catch (IllegalArgumentException e) {
-                rundeckInstance = null;
             }
+            
+            Map<String, RundeckClient> newInstances = new LinkedHashMap<String, RundeckClient>(instances.size());
+            
+            try {
+                for (int i=0; i< instances.size(); i++) {
+                    JSONObject instance = instances.getJSONObject(i);
+                    
+                    if (!StringUtils.isEmpty(instance.getString("name"))) {
+                        RundeckClientBuilder builder = RundeckClient.builder();
+                        builder.url(instance.getString("url"));
+                        if (instance.get("authtoken") != null && !"".equals(instance.getString("authtoken"))) {
+                            builder.token(instance.getString("authtoken"));
+                        } else {
+                            builder.login(instance.getString("login"), instance.getString("password"));
+                        }
+        
+                        if (instance.optInt("apiversion") > 0) {
+                            builder.version(instance.getInt("apiversion"));
+                        }
+                        newInstances.put(instance.getString("name"), builder.build());
+                    }
+                }
+            } catch (IllegalArgumentException e) {
+                // NOP
+            }
+            
+            this.setRundeckInstances(newInstances);
 
             save();
             return super.configure(req, json);
         }
 
-        public void setConfig(String url, String authtoken, int apiversion) {
-            RundeckClientBuilder builder = RundeckClient.builder();
-            builder.url(url);
-            builder.token(authtoken);
-            builder.version(apiversion);
-            rundeckInstance = builder.build();
-            save();
-        }
-
-        public void setConfig(String url, String login, String password, int apiversion) {
-            RundeckClientBuilder builder = RundeckClient.builder();
-            builder.url(url);
-            builder.login(login, password);
-            builder.version(apiversion);
-            rundeckInstance = builder.build();
-            save();
-        }
-
         @Override
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            String rundeckInstance = formData.getString("rundeckInstance");
             String jobIdentifier = formData.getString("jobIdentifier");
             RundeckJob job = null;
             try {
-                job = findJob(jobIdentifier, rundeckInstance);
+                job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
             } catch (RundeckApiException e) {
                 throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
             } catch (IllegalArgumentException e) {
@@ -466,7 +494,8 @@ public class RundeckNotifier extends Notifier {
             if (job == null) {
                 throw new FormException("Could not found a job with the identifier : " + jobIdentifier, "jobIdentifier");
             }
-            return new RundeckNotifier(jobIdentifier,
+            return new RundeckNotifier(rundeckInstance,
+                                       jobIdentifier,
                                        formData.getString("options"),
                                        formData.getString("nodeFilters"),
                                        formData.getString("tag"),
@@ -513,15 +542,16 @@ public class RundeckNotifier extends Notifier {
             return FormValidation.ok("Your Rundeck instance is alive, and your credentials are valid !");
         }
 
-        public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier) {
-            if (rundeckInstance == null) {
+        public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier, 
+                @QueryParameter("rundeckInstance") final String rundeckInstance) {
+            if (this.getRundeckInstance(rundeckInstance) == null) {
                 return FormValidation.error("Rundeck global configuration is not valid !");
             }
             if (StringUtils.isBlank(jobIdentifier)) {
                 return FormValidation.error("The job identifier is mandatory !");
             }
             try {
-                RundeckJob job = findJob(jobIdentifier, rundeckInstance);
+                RundeckJob job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
@@ -578,7 +608,7 @@ public class RundeckNotifier extends Notifier {
                 return rundeckInstance.getJob(jobIdentifier);
             }
         }
-
+        
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;
@@ -589,12 +619,20 @@ public class RundeckNotifier extends Notifier {
             return "Rundeck";
         }
 
-        public RundeckClient getRundeckInstance() {
-            return rundeckInstance;
+        public RundeckClient getRundeckInstance(String key) {
+            return rundeckInstances.get(key);
         }
 
-        public void setRundeckInstance(RundeckClient rundeckInstance) {
-            this.rundeckInstance = rundeckInstance;
+        public void addRundeckInstance(String key, RundeckClient instance) {
+            this.rundeckInstances.put(key, instance);
+        }
+        
+        public Map<String, RundeckClient> getRundeckInstances() {
+            return rundeckInstances;
+        }
+
+        public void setRundeckInstances(Map<String, RundeckClient> instances) {
+            this.rundeckInstances = instances;
         }
     }
 
