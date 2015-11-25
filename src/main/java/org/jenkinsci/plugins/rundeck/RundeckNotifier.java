@@ -23,6 +23,8 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -591,6 +593,29 @@ public class RundeckNotifier extends Notifier {
 
         public RundeckClient getRundeckInstance() {
             return rundeckInstance;
+        }
+
+        public String getApiVersion() {
+            if (rundeckInstance != null) {
+                try {
+                    Method method = this.rundeckInstance.getClass().getDeclaredMethod("getApiVersion");
+                    method.setAccessible(true);
+
+                    return method.invoke(rundeckInstance).toString();
+                } catch (SecurityException e) {
+                    throw new IllegalStateException(e);
+                } catch (NoSuchMethodException e) {
+                    throw new IllegalStateException(e);
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException(e);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException(e);
+                } catch (InvocationTargetException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            return "";
         }
 
         public void setRundeckInstance(RundeckClient rundeckInstance) {
