@@ -24,6 +24,8 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -438,13 +440,13 @@ public class RundeckNotifier extends Notifier {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             
-            JSONArray instances = json.optJSONArray("instance");
+            JSONArray instances = json.optJSONArray("inst");
             
             if (instances == null) {
                 instances = new JSONArray();
                 
-                if (json.optJSONObject("instance") != null) {
-                    instances.add(json.getJSONObject("instance"));
+                if (json.optJSONObject("inst") != null) {
+                    instances.add(json.getJSONObject("inst"));
                 }
             }
             
@@ -619,12 +621,37 @@ public class RundeckNotifier extends Notifier {
             return "Rundeck";
         }
 
+        public String getApiVersion(RundeckClient instance) {
+            if (instance != null) {
+                try {
+                    Method method = instance.getClass().getDeclaredMethod("getApiVersion");
+                    method.setAccessible(true);
+
+                    return method.invoke(instance).toString();
+                } catch (SecurityException e) {
+                    throw new IllegalStateException(e);
+                } catch (NoSuchMethodException e) {
+                    throw new IllegalStateException(e);
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException(e);
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException(e);
+                } catch (InvocationTargetException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            return "";
+        }
+
         public RundeckClient getRundeckInstance(String key) {
             return rundeckInstances.get(key);
         }
 
         public void addRundeckInstance(String key, RundeckClient instance) {
-            this.rundeckInstances.put(key, instance);
+            Map<String, RundeckClient> instances = new LinkedHashMap<String, RundeckClient>(this.rundeckInstances);
+            instances.put(key, instance);
+            this.setRundeckInstances(instances);
         }
         
         public Map<String, RundeckClient> getRundeckInstances() {
