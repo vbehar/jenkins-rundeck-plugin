@@ -371,6 +371,10 @@ public class RundeckNotifier extends Notifier {
     public BuildStepMonitor getRequiredMonitorService() {
         return BuildStepMonitor.NONE;
     }
+    
+    public String getRundeckInstance() {
+        return this.rundeckInstance;
+    }
 
     public String getJobIdentifier() {
         return jobId;
