@@ -62,7 +62,7 @@ public class RundeckNotifier extends Notifier {
     /** Pattern used for extracting the job reference (project:group/name) */
     private static final transient Pattern JOB_REFERENCE_PATTERN = Pattern.compile("^([^:]+?):(.*?)\\/?([^/]+)$");
 
-    private final String rundeckInstance;
+    private String rundeckInstance;
     
     private final String jobId;
     
@@ -79,30 +79,31 @@ public class RundeckNotifier extends Notifier {
     private final Boolean includeRundeckLogs;
     
     private final Boolean tailLog;
-
-
-    public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tag,
+    
+    RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tag,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild) {
        this(rundeckInstance, jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false);
     }
-
+    
     @DataBoundConstructor
-    public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tagsStr,
+    public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tags,
             Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog) {
-        if (StringUtils.isEmpty(rundeckInstance)) {
-            this.rundeckInstance = "Default";
-        }
-        else {
-            this.rundeckInstance = rundeckInstance;
-        }
+        this.rundeckInstance = rundeckInstance;
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
-        this.tags = extracttags(tagsStr,",");
+        this.tags = extracttags(tags,",");
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
         this.includeRundeckLogs = includeRundeckLogs;
         this.tailLog = tailLog;
+    }
+    
+    public Object readResolve() {
+        if (StringUtils.isEmpty(rundeckInstance)) {
+            this.rundeckInstance = "Default";
+        }
+        return this;
     }
 
     @Override
