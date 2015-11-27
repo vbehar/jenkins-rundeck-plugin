@@ -26,7 +26,13 @@ import hudson.util.FormValidation;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,8 +75,10 @@ public class RundeckNotifier extends Notifier {
     private final String options;
 
     private final String nodeFilters;
+    
+    private transient final String tag;
 
-    private final String[] tags;
+    private String[] tags;
 
     private final Boolean shouldWaitForRundeckJob;
 
@@ -93,6 +101,7 @@ public class RundeckNotifier extends Notifier {
         this.options = options;
         this.nodeFilters = nodeFilters;
         this.tags = extracttags(tags,",");
+        this.tag = null;
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
         this.includeRundeckLogs = includeRundeckLogs;
@@ -102,6 +111,9 @@ public class RundeckNotifier extends Notifier {
     public Object readResolve() {
         if (StringUtils.isEmpty(rundeckInstance)) {
             this.rundeckInstance = "Default";
+        }
+        if (tags == null) {
+            this.tags = extracttags(this.tag, ",");
         }
         return this;
     }
@@ -391,6 +403,20 @@ public class RundeckNotifier extends Notifier {
 
     public String getNodeFilters() {
         return nodeFilters;
+    }
+    
+    public String getTag() {
+        StringBuilder builder = new StringBuilder();
+        
+        for (int i=0; i<tags.length; i++) {
+            builder.append(tags[i]);
+            
+            if (i+1<tags.length) {
+                builder.append(",");
+            }
+        }
+        
+        return builder.toString();
     }
 
     public String[] getTags() {
