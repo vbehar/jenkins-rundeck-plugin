@@ -458,6 +458,10 @@ public class RundeckNotifier extends Notifier {
             load();
         }
         
+        public synchronized void load() {
+            super.load();
+        }
+        
         // support backward compatibility
         protected Object readResolve() { 
             if (rundeckInstance != null) {
