@@ -7,6 +7,7 @@ import hudson.scm.SubversionSCM;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
@@ -34,8 +35,8 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
 public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testCommitWithoutTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), null, "", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", createOptions(), null, "", false, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -60,8 +61,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testStandardCommitWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", null, null, "#deploy, #redeploy", false, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -84,8 +85,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -110,8 +111,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, true);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient() {
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, true);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient() {
 
             private static final long serialVersionUID = 1L;
 
@@ -146,8 +147,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testExpandEnvVarsInOptions() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), null, null, false, true);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient() {
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", createOptions(), null, null, false, true);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient() {
 
             private static final long serialVersionUID = 1L;
 
@@ -174,10 +175,40 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Notifying Rundeck..."));
         assertTrue(s.contains("Notification succeeded !"));
     }
+    public void testMultivalueOptions() throws Exception {
+        String optionString = "option1=value 1\n" +
+                              "nodes=nodename1,nodename2";
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", optionString, null, null, false, true);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient() {
+
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public RundeckExecution triggerJob(RunJob runJob) {
+                Assert.assertEquals(2, runJob.getOptions().size());
+                Assert.assertEquals("value 1", runJob.getOptions().getProperty("option1"));
+                Assert.assertEquals("nodename1,nodename2", runJob.getOptions().getProperty("nodes"));
+                return super.triggerJob(runJob);
+            }
+
+        });
+
+        FreeStyleProject project = createFreeStyleProject("my project name");
+        project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
+        project.getPublishersList().add(notifier);
+        project.setScm(createScm());
+
+        // first build
+        FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
+        assertTrue(buildContainsAction(build, RundeckExecutionBuildBadgeAction.class));
+        String s = FileUtils.readFileToString(build.getLogFile());
+        assertTrue(s.contains("Notifying Rundeck..."));
+        assertTrue(s.contains("Notification succeeded !"));
+    }
 
     public void testUpstreamBuildWithTag() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", null, null, "#deploy", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject upstream = createFreeStyleProject("upstream");
         upstream.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -211,8 +242,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testFailedBuild() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), null, "", false, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", createOptions(), null, "", false, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.FAILURE));
@@ -235,8 +266,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
 
     public void testWaitForRundeckJob() throws Exception {
-        RundeckNotifier notifier = new RundeckNotifier("1", createOptions(), null, "", true, false);
-        notifier.getDescriptor().setRundeckInstance(new MockRundeckClient());
+        RundeckNotifier notifier = new RundeckNotifier("Default", "1", createOptions(), null, "", true, false);
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -253,6 +284,35 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Rundeck execution #1 finished in 3 minutes 27 seconds, with status : SUCCEEDED"));
     }
 
+
+    public void testGetTags(){
+
+        RundeckNotifier notifier;
+        String[] tags;
+
+        notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, true);
+        tags= new String[] {"#deploy"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("Default", "1", null, null, null, false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("Default", "1", null, null, "", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("Default", "1", null, null, "  ", false, true);
+        tags= new String[0];
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+        notifier = new RundeckNotifier("Default", "1", null, null, "#tag1, #tag2", false, true);
+        tags= new String[] {"#tag1", "#tag2"};
+        assertTrue(Arrays.equals(tags, notifier.getTags()));
+
+    }
+
+
     private String createOptions() {
         Properties options = new Properties();
         options.setProperty("option1", "value 1");
@@ -260,6 +320,10 @@ public class RundeckNotifierTest extends HudsonTestCase {
         options.setProperty("jobName", "$JOB_NAME");
         options.setProperty("buildNumber", "$BUILD_NUMBER");
 
+        return createOptions(options);
+    }
+
+    private String createOptions(final Properties options) {
         StringWriter writer = new StringWriter();
         try {
             options.store(writer, "this is a comment line");
