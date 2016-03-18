@@ -242,18 +242,7 @@ public class RundeckNotifier extends Notifier {
                 listener.getLogger().println("Waiting for Rundeck execution to finish...");
 
                 if (Boolean.TRUE.equals(includeRundeckLogs) && Boolean.TRUE.equals(tailLog)) {
-                    listener.getLogger().println("BEGIN RUNDECK TAILED LOG OUTPUT");
-                    RunDeckLogTail runDeckLogTail = new RunDeckLogTail(rundeck, execution.getId());
-                    RunDeckLogTailIterator runDeckLogTailIterator = runDeckLogTail.iterator();
-                    while(runDeckLogTailIterator.hasNext()){
-                        for (RundeckOutputEntry rundeckOutputEntry : runDeckLogTailIterator.next()) {
-                            listener.getLogger().println(String.format("[%s] [%s] %s", new Object[] {rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage()}));
-                        }
-                    }
-                    listener.getLogger().println("END RUNDECK TAILED LOG OUTPUT");
-
-                    execution = rundeck.getExecution(execution.getId());
-                    logExecutionStatus(listener, execution);
+                    execution = waitTailingRundeckLogsAndReturnExecution(rundeck, listener, execution);
                 } else {
                     execution = waitForRundeckExecutionToFinishAndReturnIt(rundeck, listener, execution);
 
@@ -293,9 +282,25 @@ public class RundeckNotifier extends Notifier {
         }
     }
 
-    private void logExecutionStatus(BuildListener listener, RundeckExecution execution) {
-        listener.getLogger().println("Rundeck execution #" + execution.getId() + " finished in "
-                + execution.getDuration() + ", with status : " + execution.getStatus());
+    private RundeckExecution waitTailingRundeckLogsAndReturnExecution(RundeckClient rundeck, BuildListener listener, RundeckExecution execution) {
+        listener.getLogger().println("BEGIN RUNDECK TAILED LOG OUTPUT");
+        RunDeckLogTail runDeckLogTail = new RunDeckLogTail(rundeck, execution.getId());
+        for (List<RundeckOutputEntry> aRunDeckLogTail : runDeckLogTail) {
+            for (RundeckOutputEntry rundeckOutputEntry : aRunDeckLogTail) {
+                listener.getLogger().println(String.format("[%s] [%s] %s",
+                        new Object[]{ rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage() }));
+            }
+        }
+        listener.getLogger().println("END RUNDECK TAILED LOG OUTPUT");
+
+        execution = rundeck.getExecution(execution.getId());
+        logExecutionStatus(listener, execution, "finished");
+        return execution;
+    }
+
+    private void logExecutionStatus(BuildListener listener, RundeckExecution execution, String operationName) {
+        listener.getLogger().printf("Rundeck execution #%d %s in %s, with status : %s%n", execution.getId(), operationName,
+                execution.getDuration(), execution.getStatus());
     }
 
     /**
@@ -353,16 +358,14 @@ public class RundeckNotifier extends Notifier {
                 Thread.sleep(DELAY_BETWEEN_POLLS_IN_MILLIS);
                 execution = rundeck.getExecution(execution.getId());
             }
-            listener.getLogger().printf("Rundeck execution #%d finished in %s, with status : %s%n", execution.getId(),
-                    execution.getDuration(), execution.getStatus());
+            logExecutionStatus(listener, execution, "finished");
         } catch (InterruptedException e) {
             listener.getLogger().println("Waiting was interrupted. Probably build was cancelled. Reason: " + e);
             listener.getLogger().println("Trying to abort Rundeck execution...");
             RundeckAbort rundeckAbort = rundeck.abortExecution(execution.getId());
             listener.getLogger().printf("Abort status: %s%n", rundeckAbort.getStatus());
             execution = rundeck.getExecution(execution.getId());
-            listener.getLogger().printf("Rundeck execution #%d aborted after %s, with status : %s%n", execution.getId(),
-                    execution.getDuration(), execution.getStatus());
+            logExecutionStatus(listener, execution, "aborted");
         }
         return execution;
     }
