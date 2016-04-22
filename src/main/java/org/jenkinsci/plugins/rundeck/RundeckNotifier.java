@@ -403,7 +403,6 @@ public class RundeckNotifier extends Notifier {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
-            logInfoWithThreadId(format("Generating RundeckJobProjectLinkerAction for %s (%s - %s)", project.getDisplayName(), jobId, rundeckInstance)); //TODO: Switch to FINE
             return new RundeckJobProjectLinkerAction(rundeckInstance, getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
         } catch (RundeckApiException | IllegalArgumentException e) {
             log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
@@ -492,6 +491,10 @@ public class RundeckNotifier extends Notifier {
         private static final int JOB_DETAILS_AFTER_WRITE_EXPIRATION_IN_MINUTES = 30;
         private static final int RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS = 1;
 
+        private static final int CACHE_STATS_DISPLAY_THRESHOLD = 50;
+
+        private long callCounter = 0;
+
         private LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
                 .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
                 .build(
@@ -526,7 +529,7 @@ public class RundeckNotifier extends Notifier {
                     return RundeckDescriptor.findJobUncached(rundeckJobId, rundeckInstance);
                 }
             });
-            logInfoWithThreadId(format("%s: %s", rundeckJobId, rundeckJobCache.stats()));   //TODO: Remove it
+            logCacheStatsIfAppropriate(rundeckInstanceName, rundeckJobCache);
             return tmp;
         }
 
@@ -535,6 +538,12 @@ public class RundeckNotifier extends Notifier {
                 throw new RundeckApiException(e.getMessage(), e);
             }
             throw Throwables.propagate(e);
+        }
+
+        private void logCacheStatsIfAppropriate(String instanceName, Cache<String, RundeckJob> jobCache) {
+            if (++callCounter % CACHE_STATS_DISPLAY_THRESHOLD == 0) {
+                logInfoWithThreadId(format("%s: %s", instanceName, jobCache.stats()));
+            }
         }
     }
 
