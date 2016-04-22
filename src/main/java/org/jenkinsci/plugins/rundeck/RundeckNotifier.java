@@ -5,6 +5,7 @@ import static java.lang.String.format;
 import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.ExtensionPoint;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.Action;
@@ -35,14 +36,20 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -57,6 +64,13 @@ import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.api.domain.RundeckOutput;
 import org.rundeck.api.domain.RundeckOutputEntry;
+
+import com.google.common.base.Throwables;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 /**
  * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
@@ -75,7 +89,7 @@ public class RundeckNotifier extends Notifier {
 
     private static final int DELAY_BETWEEN_POLLS_IN_MILLIS = 5000;
 
-    private String rundeckInstance;
+    private String rundeckInstance; //TODO: Rename to rundeckInstanceName
 
     private final String jobId;
 
@@ -389,7 +403,8 @@ public class RundeckNotifier extends Notifier {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
-            return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
+            logInfoWithThreadId(format("Generating RundeckJobProjectLinkerAction for %s (%s - %s)", project.getDisplayName(), jobId, rundeckInstance)); //TODO: Switch to FINE
+            return new RundeckJobProjectLinkerAction(rundeckInstance, getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
         } catch (RundeckApiException | IllegalArgumentException e) {
             log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
                     e.getClass().getSimpleName(), e.getMessage()));
@@ -469,6 +484,60 @@ public class RundeckNotifier extends Notifier {
         return (RundeckDescriptor) super.getDescriptor();
     }
 
+    @Extension
+    @Restricted(NoExternalUse.class)
+    public static final class RundeckJobCache implements ExtensionPoint {
+
+        //TODO: Make it configurable
+        private static final int JOB_DETAILS_AFTER_WRITE_EXPIRATION_IN_MINUTES = 30;
+        private static final int RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS = 1;
+
+        private LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
+                .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
+                .build(
+                new CacheLoader<String, Cache<String, RundeckJob>>() {
+                    @Override
+                    public Cache<String, RundeckJob> load(String rundeckInstanceName) throws Exception {
+                        return createJobCacheForRundeckInstance(rundeckInstanceName);
+                    }
+                });
+
+        private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName) {
+            logInfoWithThreadId(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
+            return CacheBuilder.newBuilder()
+                    .expireAfterWrite(JOB_DETAILS_AFTER_WRITE_EXPIRATION_IN_MINUTES, TimeUnit.MINUTES)
+                    .build();
+        }
+
+        public RundeckJob findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClient rundeckInstance) {
+            try {
+                return findByJobIdInCacheOrAskServer(rundeckJobId, rundeckInstanceName, rundeckInstance);
+            } catch (UncheckedExecutionException | ExecutionException e) {
+                throw rethrowUnwrappingRundeckApiExceptionIfPossible(e);
+            }
+        }
+
+        private RundeckJob findByJobIdInCacheOrAskServer(final String rundeckJobId, String rundeckInstanceName,
+                                                         final RundeckClient rundeckInstance) throws ExecutionException {
+            Cache<String, RundeckJob> rundeckJobCache = rundeckJobInstanceAwareCache.get(rundeckInstanceName);
+
+            RundeckJob tmp = rundeckJobCache.get(rundeckJobId, new Callable<RundeckJob>() {
+                public RundeckJob call() throws Exception {
+                    return RundeckDescriptor.findJobUncached(rundeckJobId, rundeckInstance);
+                }
+            });
+            logInfoWithThreadId(format("%s: %s", rundeckJobId, rundeckJobCache.stats()));   //TODO: Remove it
+            return tmp;
+        }
+
+        private RuntimeException rethrowUnwrappingRundeckApiExceptionIfPossible(Exception e) {
+            if (e.getCause() != null && e.getCause() instanceof RundeckApiException) {
+                throw new RundeckApiException(e.getMessage(), e);
+            }
+            throw Throwables.propagate(e);
+        }
+    }
+
     @Extension(ordinal = 1000)
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
 
@@ -532,7 +601,7 @@ public class RundeckNotifier extends Notifier {
                     }
                 }
             } catch (IllegalArgumentException e) {
-                // NOP
+                log.warning(format("Unable to deserialize Rundeck instances fom JSON. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
             }
 
             this.setRundeckInstances(newInstances);
@@ -547,7 +616,7 @@ public class RundeckNotifier extends Notifier {
             String jobIdentifier = formData.getString("jobIdentifier");
             RundeckJob job = null;
             try {
-                job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
+                job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
             } catch (RundeckApiException | IllegalArgumentException e) {
                 throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
             }
@@ -611,7 +680,7 @@ public class RundeckNotifier extends Notifier {
                 return FormValidation.error("The job identifier is mandatory !");
             }
             try {
-                RundeckJob job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
+                RundeckJob job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
@@ -638,6 +707,8 @@ public class RundeckNotifier extends Notifier {
          */
         static String findJobId(String jobIdentifier, RundeckClient rundeckClient) throws RundeckApiException,
                 IllegalArgumentException {
+            logInfoWithThreadId(format("findJobId request for jobId: %s", jobIdentifier)); //TODO: Change to FINE
+            //TODO: Rewrite to use findJobUncached and cache it as well
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -648,16 +719,25 @@ public class RundeckNotifier extends Notifier {
                 return jobIdentifier;
             }
         }
+
         /**
-         * Find a {@link RundeckJob} with the given identifier
+         * Find a {@link RundeckJob} with the given identifier using internal cache if possible.
          *
          * @param jobIdentifier either a simple ID, an UUID or a reference (project:group/name)
-         * @param rundeckInstance
+         * @param rundeckInstanceName Rundeck instance name
+         * @param rundeckInstance Rundeck client instance
          * @return the {@link RundeckJob} found, or null if not found
          * @throws RundeckApiException in case of error, or if no job with this ID
          * @throws IllegalArgumentException if the identifier is not valid
          */
-        public static RundeckJob findJob(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+        public static RundeckJob findJob(String jobIdentifier, String rundeckInstanceName, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+            logInfoWithThreadId(format("Cached findJob request for jobId: %s (%s)", jobIdentifier, rundeckInstanceName));   //TODO: Change to FINE
+            RundeckJobCache rundeckJobCache = Jenkins.getInstance().getExtensionList(RundeckJobCache.class).get(0);
+            return rundeckJobCache.findJobById(jobIdentifier, rundeckInstanceName, rundeckInstance);
+        }
+
+        private static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+            logInfoWithThreadId(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -764,4 +844,7 @@ public class RundeckNotifier extends Notifier {
         return list.toArray(new String[list.size()]);
     }
 
+    private static void logInfoWithThreadId(String message) {
+        log.info(format("%d: %s", Thread.currentThread().getId(), message));
+    }
 }
