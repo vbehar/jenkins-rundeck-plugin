@@ -15,6 +15,8 @@ import org.rundeck.api.domain.RundeckJob;
  */
 public class RundeckJobProjectLinkerAction implements Action {
 
+    private final String rundeckInstanceName;
+
     private final RundeckClient rundeck;
 
     private final RundeckJob rundeckJob;
@@ -35,6 +37,7 @@ public class RundeckJobProjectLinkerAction implements Action {
         if (rundeck == null) {
             throw new IllegalArgumentException("rundeckClient should not be null !");
         }
+        this.rundeckInstanceName = rundeckInstanceName;
         this.rundeck = rundeck;
         this.rundeckJob = RundeckNotifier.RundeckDescriptor.findJob(rundeckJobId, rundeckInstanceName, rundeck);
         this.rundeckJobUrl = buildRundeckJobUrl();
@@ -73,4 +76,7 @@ public class RundeckJobProjectLinkerAction implements Action {
         return rundeckJobUrl;
     }
 
+    public String getInstanceName() {
+        return rundeckInstanceName;
+    }
 }
