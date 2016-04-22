@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,7 +43,6 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.RunDeckLogTail.RunDeckLogTailIterator;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -64,6 +64,8 @@ import org.rundeck.api.domain.RundeckOutputEntry;
  * @author Vincent Behar
  */
 public class RundeckNotifier extends Notifier {
+
+    private static final Logger log = Logger.getLogger(RundeckNotifier.class.getName());
 
     /** Pattern used for the token expansion of $ARTIFACT_NAME{regex} */
     private static final transient Pattern TOKEN_ARTIFACT_NAME_PATTERN = Pattern.compile("\\$ARTIFACT_NAME\\{(.+)\\}");
@@ -388,9 +390,9 @@ public class RundeckNotifier extends Notifier {
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
             return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
-        } catch (RundeckApiException e) {
-            return null;
-        } catch (IllegalArgumentException e) {
+        } catch (RundeckApiException | IllegalArgumentException e) {
+            log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
+                    e.getClass().getSimpleName(), e.getMessage()));
             return null;
         }
     }
@@ -546,9 +548,7 @@ public class RundeckNotifier extends Notifier {
             RundeckJob job = null;
             try {
                 job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
-            } catch (RundeckApiException e) {
-                throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
-            } catch (IllegalArgumentException e) {
+            } catch (RundeckApiException | IllegalArgumentException e) {
                 throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
             }
             if (job == null) {
@@ -686,15 +686,7 @@ public class RundeckNotifier extends Notifier {
                     method.setAccessible(true);
 
                     return method.invoke(instance).toString();
-                } catch (SecurityException e) {
-                    throw new IllegalStateException(e);
-                } catch (NoSuchMethodException e) {
-                    throw new IllegalStateException(e);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalStateException(e);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException(e);
-                } catch (InvocationTargetException e) {
+                } catch (SecurityException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
                     throw new IllegalStateException(e);
                 }
             }
