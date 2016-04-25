@@ -2,9 +2,12 @@
   <f:section title="Rundeck">
     <f:entry title="Job cache" description="Rundeck job cache configuration">
       <table width="100%">
-        <f:entry title="Enabled">
-          <f:checkbox name="rundeck.cache.enabled" checked="${descriptor.rundeckJobCacheConfig.enabled}"/>
-        </f:entry>
+        <f:block>
+          <f:optionalBlock name="rundeckJobCacheEnabled" title="Enable Rundeck job cache" checked="${descriptor.rundeckJobCacheConfig.enabled}">
+            <f:validateButton title="Cache statistics" method="displayCacheStatistics" with=""/>
+            <f:validateButton title="Invalidate cache" method="invalidateCache" with=""/>
+          </f:optionalBlock>
+        </f:block>
       </table>
     </f:entry>
     <f:entry title="Instances" description="List of Rundeck instances">

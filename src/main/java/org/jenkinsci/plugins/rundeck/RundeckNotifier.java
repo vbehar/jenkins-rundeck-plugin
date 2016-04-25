@@ -525,6 +525,32 @@ public class RundeckNotifier extends Notifier {
             }
         }
 
+        @Override
+        public String logAndGetStats() {
+            return logStatsAndReturnsAsString();
+        }
+
+        private String logStatsAndReturnsAsString() {
+            StringBuilder sb = new StringBuilder();
+            if (rundeckJobInstanceAwareCache.size() == 0) {
+                sb.append("Cache is empty");
+            } else {
+                for(Map.Entry<String, Cache<String, RundeckJob>> instanceCacheEntries: rundeckJobInstanceAwareCache.asMap().entrySet()) {
+                    logCacheStats(instanceCacheEntries.getKey(), instanceCacheEntries.getValue());
+                    sb.append(format("%s: %s", instanceCacheEntries.getKey(), instanceCacheEntries.getValue().stats()));
+                }
+            }
+            logCacheStats("Meta", rundeckJobInstanceAwareCache);
+            return sb.toString();
+        }
+
+        @Override
+        public void invalidate() {
+            logStatsAndReturnsAsString();
+            log.info("Rundeck job cache invalidation");
+            rundeckJobInstanceAwareCache.invalidateAll();
+        }
+
         private RundeckJob findByJobIdInCacheOrAskServer(final String rundeckJobId, String rundeckInstanceName,
                                                          final RundeckClient rundeckInstance) throws ExecutionException {
             Cache<String, RundeckJob> rundeckJobCache = rundeckJobInstanceAwareCache.get(rundeckInstanceName);
@@ -547,8 +573,12 @@ public class RundeckNotifier extends Notifier {
 
         private void logCacheStatsIfAppropriate(String instanceName, Cache<String, RundeckJob> jobCache) {
             if (++callCounter % CACHE_STATS_DISPLAY_THRESHOLD == 0) {
-                logInfoWithThreadId(format("%s: %s", instanceName, jobCache.stats()));
+                logCacheStats(instanceName, jobCache);
             }
+        }
+
+        private void logCacheStats(String instanceName, Cache<String, ?> jobCache) {
+            logInfoWithThreadId(format("%s: %s", instanceName, jobCache.stats()));
         }
     }
 
@@ -571,7 +601,9 @@ public class RundeckNotifier extends Notifier {
         }
 
         public synchronized void load() {
+            System.out.println("======= Before super.load " + rundeckJobCacheConfig.isEnabled() + rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes());
             super.load();
+            System.out.println("======= After super.load " + rundeckJobCacheConfig.isEnabled() + rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes());
             initializeRundeckJobCache();
         }
 
@@ -581,7 +613,7 @@ public class RundeckNotifier extends Notifier {
                 rundeckJobCache = new RundeckJobCache(rundeckJobCacheConfig);
             } else {
                 log.info("Rundeck job cache DISABLED.");
-//                rundeckJobCache.invalidate();   //TODO: To faster release currently used data structures
+                rundeckJobCache.invalidate();
                 rundeckJobCache = new DummyRundeckJobCache();
             }
         }
@@ -595,8 +627,6 @@ public class RundeckNotifier extends Notifier {
             }
             return this;
         }
-
-        //TODO: Print stats method for GUI on demand + invalidate
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
@@ -645,7 +675,7 @@ public class RundeckNotifier extends Notifier {
         }
 
         private void configureRundeckJobCache(JSONObject json) {
-            boolean cacheEnabledAsBoolean = json.optBoolean("enabled");
+            boolean cacheEnabledAsBoolean = json.has("rundeckJobCacheEnabled");
             if (cacheEnabledAsBoolean == rundeckJobCacheConfig.isEnabled()) {   //nothing changed
                 return;
             }
@@ -678,6 +708,18 @@ public class RundeckNotifier extends Notifier {
                                        formData.getBoolean("tailLog"));
         }
 
+        @SuppressWarnings("unused")
+        public FormValidation doDisplayCacheStatistics() {
+            return FormValidation.ok(rundeckJobCache.logAndGetStats());
+        }
+
+        @SuppressWarnings("unused")
+        public FormValidation doInvalidateCache() {
+            rundeckJobCache.invalidate();
+            return FormValidation.ok("Done");
+        }
+
+        @SuppressWarnings("unused")
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                 @QueryParameter("rundeck.login") final String login,
                 @QueryParameter("rundeck.password") final String password,

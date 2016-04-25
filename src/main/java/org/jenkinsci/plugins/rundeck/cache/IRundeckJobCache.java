@@ -6,4 +6,8 @@ import org.rundeck.api.domain.RundeckJob;
 public interface IRundeckJobCache {
 
     RundeckJob findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClient rundeckInstance);
+
+    String logAndGetStats();
+
+    void invalidate();
 }
