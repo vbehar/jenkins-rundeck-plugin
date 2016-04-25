@@ -5,7 +5,6 @@ import static java.lang.String.format;
 import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
-import hudson.ExtensionPoint;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.Action;
@@ -35,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -48,8 +48,9 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.IRundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -483,32 +484,36 @@ public class RundeckNotifier extends Notifier {
         return (RundeckDescriptor) super.getDescriptor();
     }
 
-    @Extension
-    @Restricted(NoExternalUse.class)
-    public static final class RundeckJobCache implements ExtensionPoint {
+    public static final class RundeckJobCache implements IRundeckJobCache {
 
         //TODO: Make it configurable
-        private static final int JOB_DETAILS_AFTER_WRITE_EXPIRATION_IN_MINUTES = 30;
         private static final int RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS = 1;
 
         private static final int CACHE_STATS_DISPLAY_THRESHOLD = 50;
 
+        private final RundeckJobCacheConfig rundeckJobCacheConfig;
+
         private long callCounter = 0;
 
-        private LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
-                .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
-                .build(
-                new CacheLoader<String, Cache<String, RundeckJob>>() {
-                    @Override
-                    public Cache<String, RundeckJob> load(String rundeckInstanceName) throws Exception {
-                        return createJobCacheForRundeckInstance(rundeckInstanceName);
-                    }
-                });
+        private LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache;
+
+        public RundeckJobCache(RundeckJobCacheConfig rundeckJobCacheConfig) {
+            this.rundeckJobCacheConfig = Objects.requireNonNull(rundeckJobCacheConfig);
+            this.rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
+                    .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
+                    .build(
+                            new CacheLoader<String, Cache<String, RundeckJob>>() {
+                                @Override
+                                public Cache<String, RundeckJob> load(String rundeckInstanceName) throws Exception {
+                                    return createJobCacheForRundeckInstance(rundeckInstanceName);
+                                }
+                            });
+        }
 
         private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName) {
             logInfoWithThreadId(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
             return CacheBuilder.newBuilder()
-                    .expireAfterWrite(JOB_DETAILS_AFTER_WRITE_EXPIRATION_IN_MINUTES, TimeUnit.MINUTES)
+                    .expireAfterWrite(rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes(), TimeUnit.MINUTES)
                     .build();
         }
 
@@ -556,6 +561,10 @@ public class RundeckNotifier extends Notifier {
         @CopyOnWrite
         private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<String, RundeckClient>();
 
+        private transient IRundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
+
+        private volatile RundeckJobCacheConfig rundeckJobCacheConfig = RundeckJobCacheConfig.initializeWithDefaultValues();
+
         public RundeckDescriptor() {
             super();
             load();
@@ -563,6 +572,18 @@ public class RundeckNotifier extends Notifier {
 
         public synchronized void load() {
             super.load();
+            initializeRundeckJobCache();
+        }
+
+        private void initializeRundeckJobCache() {
+            if (rundeckJobCacheConfig.isEnabled()) {
+                log.info("Rundeck job cache enabled. Using following configuration: " + rundeckJobCacheConfig);
+                rundeckJobCache = new RundeckJobCache(rundeckJobCacheConfig);
+            } else {
+                log.info("Rundeck job cache DISABLED.");
+//                rundeckJobCache.invalidate();   //TODO: To faster release currently used data structures
+                rundeckJobCache = new DummyRundeckJobCache();
+            }
         }
 
         // support backward compatibility
@@ -574,6 +595,8 @@ public class RundeckNotifier extends Notifier {
             }
             return this;
         }
+
+        //TODO: Print stats method for GUI on demand + invalidate
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
@@ -615,8 +638,20 @@ public class RundeckNotifier extends Notifier {
 
             this.setRundeckInstances(newInstances);
 
+            configureRundeckJobCache(json);
+
             save();
             return super.configure(req, json);
+        }
+
+        private void configureRundeckJobCache(JSONObject json) {
+            boolean cacheEnabledAsBoolean = json.optBoolean("enabled");
+            if (cacheEnabledAsBoolean == rundeckJobCacheConfig.isEnabled()) {   //nothing changed
+                return;
+            }
+
+            rundeckJobCacheConfig.setEnabled(cacheEnabledAsBoolean);
+            initializeRundeckJobCache();
         }
 
         @Override
@@ -741,12 +776,18 @@ public class RundeckNotifier extends Notifier {
          */
         public static RundeckJob findJob(String jobIdentifier, String rundeckInstanceName, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
             logInfoWithThreadId(format("Cached findJob request for jobId: %s (%s)", jobIdentifier, rundeckInstanceName));   //TODO: Change to FINE
-            RundeckJobCache rundeckJobCache = Jenkins.getInstance().getExtensionList(RundeckJobCache.class).get(0);
+//            RundeckJobCache rundeckJobCache = Jenkins.getInstance().getExtensionList(RundeckJobCache.class).get(0);
+            IRundeckJobCache rundeckJobCache = Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0).rundeckJobCache;
             return rundeckJobCache.findJobById(jobIdentifier, rundeckInstanceName, rundeckInstance);
         }
 
-        private static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
-            logInfoWithThreadId(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
+        public static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+            RundeckJobCacheConfig rundeckJobCacheConfig = Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0).getRundeckJobCacheConfig();
+            if (rundeckJobCacheConfig.isEnabled()) {
+                logInfoWithThreadId(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
+            } else {
+                log.fine(format("Not cache findJobUncached request for jobId: %s", jobIdentifier));
+            }
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -799,6 +840,10 @@ public class RundeckNotifier extends Notifier {
 
         public void setRundeckInstances(Map<String, RundeckClient> instances) {
             this.rundeckInstances = instances;
+        }
+
+        public RundeckJobCacheConfig getRundeckJobCacheConfig() {
+            return rundeckJobCacheConfig;
         }
     }
 

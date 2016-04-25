@@ -35,6 +35,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("login", instance.getLogin());
         assertEquals("password", instance.getPassword());
         assertEquals("9", descriptor.getApiVersion(instance));
+        assertEquals(true, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(30, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
     }
     
     @LocalData
@@ -42,7 +44,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
         
         String oldStoredConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
-        
+
         descriptor.save();
         
         String storedConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
@@ -61,7 +63,11 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "        <password>password</password>\n" + 
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
-                "  </rundeckInstances>\n" + 
+                "  </rundeckInstances>\n" +
+                "  <rundeckJobCacheConfig>\n" +
+                "    <enabled>true</enabled>\n" +
+                "    <jobDetailsAfterWriteExpirationInMinutes>30</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
         assertEquals(expected, storedConfig);
@@ -101,6 +107,10 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
+                "  <rundeckJobCacheConfig>\n" +
+                "    <enabled>true</enabled>\n" +
+                "    <jobDetailsAfterWriteExpirationInMinutes>30</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
         assertEquals(expected, storedConfig);
@@ -162,7 +172,15 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         
         assertEquals(expected, storedConfig);
     }
-    
+
+    @LocalData
+    public void test_GivenADescriptorConfigWithoutCache_WhenInstanciatingDescriptorCacheWithDefaultValuesIsUsed() {
+        RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
+
+        assertEquals(true, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(30, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
+    }
+
     private FreeStyleProject getOldJob() {
         return ((FreeStyleProject)this.jenkins.getItem("old"));
     }

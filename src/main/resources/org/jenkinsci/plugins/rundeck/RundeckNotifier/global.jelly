@@ -1,5 +1,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:section title="Rundeck">
+    <f:entry title="Job cache" description="Rundeck job cache configuration">
+      <table width="100%">
+        <f:entry title="Enabled">
+          <f:checkbox name="rundeck.cache.enabled" checked="${descriptor.rundeckJobCacheConfig.enabled}"/>
+        </f:entry>
+      </table>
+    </f:entry>
     <f:entry title="Instances" description="List of Rundeck instances">
       <f:repeatable var="inst" items="${descriptor.rundeckInstances}" add="Add Rundeck">
         <table width="100%">
