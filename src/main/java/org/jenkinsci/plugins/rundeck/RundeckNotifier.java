@@ -493,9 +493,7 @@ public class RundeckNotifier extends Notifier {
         }
 
         public synchronized void load() {
-            System.out.println("======= Before super.load " + rundeckJobCacheConfig.isEnabled() + rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes());
             super.load();
-            System.out.println("======= After super.load " + rundeckJobCacheConfig.isEnabled() + rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes());
             initializeRundeckJobCache();
         }
 

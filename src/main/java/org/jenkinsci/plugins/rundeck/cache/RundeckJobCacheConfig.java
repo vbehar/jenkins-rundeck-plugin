@@ -3,7 +3,7 @@ package org.jenkinsci.plugins.rundeck.cache;
 public class RundeckJobCacheConfig {
 
     private boolean enabled = false;
-    private int jobDetailsAfterWriteExpirationInMinutes = 30;
+    private int jobDetailsAfterWriteExpirationInMinutes = 12 * 60;
 
     public RundeckJobCacheConfig(boolean enabled, int jobDetailsAfterWriteExpirationInMinutes) {
         this.enabled = enabled;
