@@ -11,7 +11,10 @@ public class RundeckJobCacheConfig {
     }
 
     private RundeckJobCacheConfig() {
-        System.out.println("======= RundeckJobCacheConfig created");
+    }
+
+    public static RundeckJobCacheConfig initializeWithDefaultValues() {
+        return new RundeckJobCacheConfig();
     }
 
     public void setEnabled(boolean enabled) {
@@ -24,10 +27,6 @@ public class RundeckJobCacheConfig {
 
     public int getJobDetailsAfterWriteExpirationInMinutes() {
         return jobDetailsAfterWriteExpirationInMinutes;
-    }
-
-    public static RundeckJobCacheConfig initializeWithDefaultValues() {
-        return new RundeckJobCacheConfig();
     }
 
     @Override

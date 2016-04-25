@@ -6,7 +6,7 @@ import org.jenkinsci.plugins.rundeck.RundeckNotifier;
 import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckJob;
 
-public class DummyRundeckJobCache implements IRundeckJobCache {
+public class DummyRundeckJobCache implements RundeckJobCache {
 
     private static final Logger log = Logger.getLogger(DummyRundeckJobCache.class.getName());
 
