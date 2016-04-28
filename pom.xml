@@ -175,7 +175,7 @@
         <dependency>
             <groupId>org.jmockit</groupId>
             <artifactId>jmockit</artifactId>
-            <version>1.17</version>
+            <version>1.16</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
