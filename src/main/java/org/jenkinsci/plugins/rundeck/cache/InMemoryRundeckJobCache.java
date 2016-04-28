@@ -21,14 +21,11 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
-public final class InMemoryRundeckJobCache implements RundeckJobCache {
+public class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private static final Logger log = Logger.getLogger(InMemoryRundeckJobCache.class.getName());
 
     private static final int RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS = 1;
-
-    //TODO: Remove that field - it is used only during the initialization
-    private final RundeckJobCacheConfig rundeckJobCacheConfig;
 
     private final int cacheStatsDisplayHitThreshold;
 
@@ -36,8 +33,8 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private long hitCounter = 0;
 
-    public InMemoryRundeckJobCache(RundeckJobCacheConfig rundeckJobCacheConfig) {
-        this.rundeckJobCacheConfig = Objects.requireNonNull(rundeckJobCacheConfig);
+    public InMemoryRundeckJobCache(final RundeckJobCacheConfig rundeckJobCacheConfig) {
+        Objects.requireNonNull(rundeckJobCacheConfig);
         this.cacheStatsDisplayHitThreshold = rundeckJobCacheConfig.getCacheStatsDisplayHitThreshold();
         this.rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
                 .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
@@ -45,12 +42,12 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
                         new CacheLoader<String, Cache<String, RundeckJob>>() {
                             @Override
                             public Cache<String, RundeckJob> load(String rundeckInstanceName) throws Exception {
-                                return createJobCacheForRundeckInstance(rundeckInstanceName);
+                                return createJobCacheForRundeckInstance(rundeckInstanceName, rundeckJobCacheConfig);
                             }
                         });
     }
 
-    private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName) {
+    private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName, RundeckJobCacheConfig rundeckJobCacheConfig) {
         logInfoWithThreadId(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
         return CacheBuilder.newBuilder()
                 .expireAfterAccess(rundeckJobCacheConfig.getAfterAccessExpirationInMinutes(), TimeUnit.MINUTES)

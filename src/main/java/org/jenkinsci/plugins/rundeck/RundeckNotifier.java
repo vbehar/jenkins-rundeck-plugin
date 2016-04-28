@@ -481,9 +481,9 @@ public class RundeckNotifier extends Notifier {
         private transient RundeckClient rundeckInstance;
 
         @CopyOnWrite
-        private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<String, RundeckClient>();
+        private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<>();
 
-        private transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
+        private volatile transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
 
         private volatile RundeckJobCacheConfig rundeckJobCacheConfig = RundeckJobCacheConfig.initializeWithDefaultValues();
 
@@ -684,7 +684,7 @@ public class RundeckNotifier extends Notifier {
         static String findJobId(String jobIdentifier, RundeckClient rundeckClient) throws RundeckApiException,
                 IllegalArgumentException {
             logInfoWithThreadId(format("findJobId request for jobId: %s", jobIdentifier)); //TODO: Change to FINE
-            //TODO: Rewrite to use findJobUncached and cache it as well
+            //TODO: Could be rewritten to be cache as well, if needed
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -707,12 +707,12 @@ public class RundeckNotifier extends Notifier {
          * @throws IllegalArgumentException if the identifier is not valid
          */
         public static RundeckJob findJob(String jobIdentifier, String rundeckInstanceName, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
-            RundeckJobCache rundeckJobCache = Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0).rundeckJobCache;
+            RundeckJobCache rundeckJobCache = getRundeckDescriptor().rundeckJobCache;
             return rundeckJobCache.findJobById(jobIdentifier, rundeckInstanceName, rundeckInstance);
         }
 
         public static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
-            RundeckJobCacheConfig rundeckJobCacheConfig = Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0).getRundeckJobCacheConfig();
+            RundeckJobCacheConfig rundeckJobCacheConfig = getRundeckDescriptor().getRundeckJobCacheConfig();
             if (rundeckJobCacheConfig.isEnabled()) {
                 logInfoWithThreadId(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
             } else {
@@ -804,7 +804,6 @@ public class RundeckNotifier extends Notifier {
 
     }
 
-
     /**
      *
      * @param tagsStr
@@ -826,6 +825,10 @@ public class RundeckNotifier extends Notifier {
         }
 
         return list.toArray(new String[list.size()]);
+    }
+
+    private static RundeckDescriptor getRundeckDescriptor() {
+        return Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0);
     }
 
     //TODO: Remove
