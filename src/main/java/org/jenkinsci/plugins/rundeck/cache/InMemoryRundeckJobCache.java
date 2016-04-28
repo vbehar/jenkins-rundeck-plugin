@@ -25,19 +25,20 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private static final Logger log = Logger.getLogger(InMemoryRundeckJobCache.class.getName());
 
-    //TODO: Make it configurable
     private static final int RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS = 1;
 
-    private static final int CACHE_STATS_DISPLAY_THRESHOLD = 50;
-
+    //TODO: Remove that field - it is used only during the initialization
     private final RundeckJobCacheConfig rundeckJobCacheConfig;
 
-    private long callCounter = 0;
+    private final int cacheStatsDisplayHitThreshold;
 
-    private LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache;
+    private final LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache;
+
+    private long hitCounter = 0;
 
     public InMemoryRundeckJobCache(RundeckJobCacheConfig rundeckJobCacheConfig) {
         this.rundeckJobCacheConfig = Objects.requireNonNull(rundeckJobCacheConfig);
+        this.cacheStatsDisplayHitThreshold = rundeckJobCacheConfig.getCacheStatsDisplayHitThreshold();
         this.rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
                 .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
                 .build(
@@ -52,7 +53,8 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
     private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName) {
         logInfoWithThreadId(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
         return CacheBuilder.newBuilder()
-                .expireAfterWrite(rundeckJobCacheConfig.getJobDetailsAfterWriteExpirationInMinutes(), TimeUnit.MINUTES)
+                .expireAfterAccess(rundeckJobCacheConfig.getAfterAccessExpirationInMinutes(), TimeUnit.MINUTES)
+                .maximumSize(rundeckJobCacheConfig.getMaximumSize())
                 .build();
     }
 
@@ -77,7 +79,7 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
         } else {
             for(Map.Entry<String, Cache<String, RundeckJob>> instanceCacheEntries: rundeckJobInstanceAwareCache.asMap().entrySet()) {
                 logCacheStats(instanceCacheEntries.getKey(), instanceCacheEntries.getValue());
-                sb.append(format("%s: %s", instanceCacheEntries.getKey(), instanceCacheEntries.getValue().stats()));
+                sb.append(format("%s: %s", instanceCacheEntries.getKey(), instanceCacheEntries.getValue().stats())).append("\n");
             }
         }
         logCacheStats("Meta", rundeckJobInstanceAwareCache);
@@ -112,7 +114,7 @@ public final class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private void logCacheStatsIfAppropriate(String instanceName, Cache<String, RundeckJob> jobCache) {
-        if (++callCounter % CACHE_STATS_DISPLAY_THRESHOLD == 0) {
+        if (++hitCounter % cacheStatsDisplayHitThreshold == 0) {
             logCacheStats(instanceName, jobCache);
         }
     }

@@ -515,6 +515,16 @@ public class RundeckNotifier extends Notifier {
                 instance.put("Default", rundeckInstance);
                 this.setRundeckInstances(instance);
             }
+
+            if (rundeckJobCacheConfig.getAfterAccessExpirationInMinutes() == null) {
+                rundeckJobCacheConfig.setAfterAccessExpirationInMinutes(17 * 60);
+            }
+            if (rundeckJobCacheConfig.getMaximumSize() == null) {
+                rundeckJobCacheConfig.setMaximumSize(499);
+            }
+            if (rundeckJobCacheConfig.getCacheStatsDisplayHitThreshold() == null) {
+                rundeckJobCacheConfig.setCacheStatsDisplayHitThreshold(180);
+            }
             return this;
         }
 

@@ -37,6 +37,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("9", descriptor.getApiVersion(instance));
         assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
         assertEquals(720, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
+        assertEquals(1080, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes().intValue());
+        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize().intValue());
+        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold().intValue());
     }
     
     @LocalData
@@ -67,6 +70,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +
                 "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
+                "    <maximumSize>500</maximumSize>\n" +
+                "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
                 "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
@@ -110,6 +116,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +
                 "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
+                "    <maximumSize>500</maximumSize>\n" +
+                "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
                 "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
@@ -165,8 +174,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <shouldFailTheBuild>true</shouldFailTheBuild>\n" + 
                 "      <includeRundeckLogs>false</includeRundeckLogs>\n" + 
                 "      <tailLog>false</tailLog>\n" + 
-                "    </org.jenkinsci.plugins.rundeck.RundeckNotifier>\n" + 
-                "  </publishers>\n" + 
+                "    </org.jenkinsci.plugins.rundeck.RundeckNotifier>\n" +
+                "  </publishers>\n" +
                 "  <buildWrappers/>\n" + 
                 "</project>";
         
