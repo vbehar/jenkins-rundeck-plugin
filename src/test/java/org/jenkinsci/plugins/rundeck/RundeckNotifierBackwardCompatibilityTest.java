@@ -36,10 +36,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("password", instance.getPassword());
         assertEquals("9", descriptor.getApiVersion(instance));
         assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
-        assertEquals(720, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
-        assertEquals(1080, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes().intValue());
-        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize().intValue());
-        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold().intValue());
+        assertEquals(1080, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes());
+        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize());
+        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold());
     }
     
     @LocalData
@@ -69,7 +68,6 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "  </rundeckInstances>\n" +
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +
-                "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
                 "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
                 "    <maximumSize>500</maximumSize>\n" +
                 "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
@@ -115,7 +113,6 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "  </rundeckInstances>\n" + 
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +
-                "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
                 "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
                 "    <maximumSize>500</maximumSize>\n" +
                 "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
@@ -187,7 +184,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
 
         assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
-        assertEquals(720, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
+        assertEquals(18 * 60, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes());
+        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize());
+        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold());
     }
 
     private FreeStyleProject getOldJob() {
