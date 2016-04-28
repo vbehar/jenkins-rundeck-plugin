@@ -35,8 +35,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("login", instance.getLogin());
         assertEquals("password", instance.getPassword());
         assertEquals("9", descriptor.getApiVersion(instance));
-        assertEquals(true, descriptor.getRundeckJobCacheConfig().isEnabled());
-        assertEquals(30, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
+        assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(720, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
     }
     
     @LocalData
@@ -65,8 +65,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" +
                 "  <rundeckJobCacheConfig>\n" +
-                "    <enabled>true</enabled>\n" +
-                "    <jobDetailsAfterWriteExpirationInMinutes>30</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "    <enabled>false</enabled>\n" +
+                "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
                 "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
@@ -108,8 +108,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
                 "  <rundeckJobCacheConfig>\n" +
-                "    <enabled>true</enabled>\n" +
-                "    <jobDetailsAfterWriteExpirationInMinutes>30</jobDetailsAfterWriteExpirationInMinutes>\n" +
+                "    <enabled>false</enabled>\n" +
+                "    <jobDetailsAfterWriteExpirationInMinutes>720</jobDetailsAfterWriteExpirationInMinutes>\n" +
                 "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
@@ -177,8 +177,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
     public void test_GivenADescriptorConfigWithoutCache_WhenInstanciatingDescriptorCacheWithDefaultValuesIsUsed() {
         RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
 
-        assertEquals(true, descriptor.getRundeckJobCacheConfig().isEnabled());
-        assertEquals(30, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
+        assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(720, descriptor.getRundeckJobCacheConfig().getJobDetailsAfterWriteExpirationInMinutes());
     }
 
     private FreeStyleProject getOldJob() {
