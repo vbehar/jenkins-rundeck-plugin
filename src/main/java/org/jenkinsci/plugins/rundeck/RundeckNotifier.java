@@ -80,7 +80,7 @@ public class RundeckNotifier extends Notifier {
 
     private static final int DELAY_BETWEEN_POLLS_IN_MILLIS = 5000;
 
-    private String rundeckInstance; //TODO: Rename to rundeckInstanceName
+    private String rundeckInstance; //TODO: Could be renamed to rundeckInstanceName
 
     private final String jobId;
 
@@ -683,7 +683,7 @@ public class RundeckNotifier extends Notifier {
          */
         static String findJobId(String jobIdentifier, RundeckClient rundeckClient) throws RundeckApiException,
                 IllegalArgumentException {
-            logInfoWithThreadId(format("findJobId request for jobId: %s", jobIdentifier)); //TODO: Change to FINE
+            log.fine(format("findJobId request for jobId: %s", jobIdentifier));
             //TODO: Could be rewritten to be cache as well, if needed
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
@@ -714,9 +714,9 @@ public class RundeckNotifier extends Notifier {
         public static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
             RundeckJobCacheConfig rundeckJobCacheConfig = getRundeckDescriptor().getRundeckJobCacheConfig();
             if (rundeckJobCacheConfig.isEnabled()) {
-                logInfoWithThreadId(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
+                log.info(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
             } else {
-                log.info(format("findJobUncached request for jobId: %s (cache disabled)", jobIdentifier));  //TODO: Change to FINE
+                log.fine(format("findJobUncached request for jobId: %s (cache disabled)", jobIdentifier));
             }
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
@@ -829,10 +829,5 @@ public class RundeckNotifier extends Notifier {
 
     private static RundeckDescriptor getRundeckDescriptor() {
         return Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0);
-    }
-
-    //TODO: Remove
-    private static void logInfoWithThreadId(String message) {
-        log.info(format("%d: %s", Thread.currentThread().getId(), message));
     }
 }

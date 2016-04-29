@@ -21,6 +21,12 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
+/**
+ * In-memory Rundeck job cache implementation based on Cache from Guava.
+ *
+ * @author Marcin Zajączkowski
+ * @since 3.6.0
+ */
 public class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private static final Logger log = Logger.getLogger(InMemoryRundeckJobCache.class.getName());
@@ -48,7 +54,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName, RundeckJobCacheConfig rundeckJobCacheConfig) {
-        logInfoWithThreadId(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
+        log.info(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
         return CacheBuilder.newBuilder()
                 .expireAfterAccess(rundeckJobCacheConfig.getAfterAccessExpirationInMinutes(), TimeUnit.MINUTES)
                 .maximumSize(rundeckJobCacheConfig.getMaximumSize())
@@ -57,7 +63,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
 
     public RundeckJob findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClient rundeckInstance) {
         try {
-            logInfoWithThreadId(format("Cached findJob request for jobId: %s (%s)", rundeckJobId, rundeckInstanceName));   //TODO: Change to FINE
+            log.fine(format("Cached findJob request for jobId: %s (%s)", rundeckJobId, rundeckInstanceName));
             return findByJobIdInCacheOrAskServer(rundeckJobId, rundeckInstanceName, rundeckInstance);
         } catch (UncheckedExecutionException | ExecutionException e) {
             throw rethrowUnwrappingRundeckApiExceptionIfPossible(e);
@@ -117,12 +123,6 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private void logCacheStats(String instanceName, Cache<String, ?> jobCache) {
-        logInfoWithThreadId(format("%s: %s", instanceName, jobCache.stats()));
+        log.info(format("%s: %s", instanceName, jobCache.stats()));
     }
-
-    //TODO: Remove
-    private static void logInfoWithThreadId(String message) {
-        log.info(format("%d: %s", Thread.currentThread().getId(), message));
-    }
-
 }

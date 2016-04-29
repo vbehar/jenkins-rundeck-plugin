@@ -1,5 +1,11 @@
 package org.jenkinsci.plugins.rundeck.cache;
 
+/**
+ * Rundeck job cache configuration.
+ *
+ * @author Marcin Zajączkowski
+ * @since 3.6.0
+ */
 //TODO: Could be immutable with builder and copy constructor
 public class RundeckJobCacheConfig {
 

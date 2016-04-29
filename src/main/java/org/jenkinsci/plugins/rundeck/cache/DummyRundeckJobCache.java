@@ -6,6 +6,12 @@ import org.jenkinsci.plugins.rundeck.RundeckNotifier;
 import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckJob;
 
+/**
+ * Dummy Rundeck job cache implementation based. Used as a placeholder when caching is disabled.
+ *
+ * @author Marcin Zajączkowski
+ * @since 3.6.0
+ */
 public class DummyRundeckJobCache implements RundeckJobCache {
 
     private static final Logger log = Logger.getLogger(DummyRundeckJobCache.class.getName());
