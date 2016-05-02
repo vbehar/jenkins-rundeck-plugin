@@ -117,6 +117,9 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private void logCacheStatsIfAppropriate(String instanceName, Cache<String, RundeckJob> jobCache) {
+        if (cacheStatsDisplayHitThreshold <= 0) {    //stats printing disabled
+            return;
+        }
         if (++hitCounter % cacheStatsDisplayHitThreshold == 0) {
             logCacheStats(instanceName, jobCache);
         }
