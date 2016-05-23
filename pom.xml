@@ -155,7 +155,7 @@
         <dependency>
             <groupId>org.rundeck</groupId>
             <artifactId>rundeck-api-java-client</artifactId>
-            <version>12.0</version>
+            <version>13.1</version>
         </dependency>
         <!-- overwrite the xalan version of rundeck api by the version used in jenkins -->
         <dependency>

@@ -40,25 +40,28 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
     @LocalData
     public void test_GivenADescriptorConfigWithoutRundeckInstance_WhenInstanciatingDescriptorAndSavingIt_ThenPersistedConfigIsUpdated() throws Exception {
         RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
-        
+
         String oldStoredConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
-        
+
         descriptor.save();
-        
+
         String storedConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
-        
+
         assertFalse(oldStoredConfig.equals(storedConfig));
 
-        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" + 
-                "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" + 
-                "  <rundeckInstances class=\"linked-hash-map\">\n" + 
-                "    <entry>\n" + 
-                "      <string>Default</string>\n" + 
-                "      <org.rundeck.api.RundeckClient>\n" + 
-                "        <url>http://rundeck.org</url>\n" + 
-                "        <apiVersion>9</apiVersion>\n" + 
-                "        <login>login</login>\n" + 
-                "        <password>password</password>\n" + 
+        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+                "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
+                "  <rundeckInstances class=\"linked-hash-map\">\n" +
+                "    <entry>\n" +
+                "      <string>Default</string>\n" +
+                "      <org.rundeck.api.RundeckClient>\n" +
+                "        <url>http://rundeck.org</url>\n" +
+                "        <apiVersion>9</apiVersion>\n" +
+                "        <login>login</login>\n" +
+                "        <password>password</password>\n" +
+                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
@@ -87,17 +90,23 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <string>first</string>\n" + 
                 "      <org.rundeck.api.RundeckClient>\n" + 
                 "        <url>http://first</url>\n" + 
-                "        <apiVersion>12</apiVersion>\n" + 
+                "        <apiVersion>13</apiVersion>\n" +
                 "        <login>login</login>\n" + 
-                "        <password>password</password>\n" + 
+                "        <password>password</password>\n" +
+                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "    <entry>\n" + 
                 "      <string>second</string>\n" + 
                 "      <org.rundeck.api.RundeckClient>\n" + 
                 "        <url>http://second</url>\n" + 
-                "        <apiVersion>12</apiVersion>\n" + 
-                "        <token>token</token>\n" + 
+                "        <apiVersion>13</apiVersion>\n" +
+                "        <token>token</token>\n" +
+                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
