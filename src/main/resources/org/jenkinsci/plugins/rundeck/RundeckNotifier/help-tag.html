@@ -1,6 +1,7 @@
 <div>
-    Used to perform "on-demand" job scheduling on Rundeck : if the value is not empty,
-    we will check if the SCM changelog contains the given tag, and only schedule a job execution
-    if it is present. For example you can set the value to "<strong>#deploy</strong>".
-    Note that if this value is left empty, we will ALWAYS schedule a job execution.
+    Used to perform "on-demand" job scheduling on Rundeck: if the value is not empty,
+    we will check if the SCM changelog contains any one of the given comma-separated tag(s),
+    and only schedule a job execution if it is present. For example you can set the value to
+    "<strong>#deploy</strong>" or "<strong>#deploy,#redeploy</strong>". Note that if this value
+    is left empty, we will ALWAYS schedule a job execution.
 </div>
