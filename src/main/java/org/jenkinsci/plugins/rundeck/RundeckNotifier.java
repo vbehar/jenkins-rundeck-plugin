@@ -35,14 +35,19 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.RunDeckLogTail.RunDeckLogTailIterator;
+import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.InMemoryRundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -65,6 +70,8 @@ import org.rundeck.api.domain.RundeckOutputEntry;
  */
 public class RundeckNotifier extends Notifier {
 
+    private static final Logger log = Logger.getLogger(RundeckNotifier.class.getName());
+
     /** Pattern used for the token expansion of $ARTIFACT_NAME{regex} */
     private static final transient Pattern TOKEN_ARTIFACT_NAME_PATTERN = Pattern.compile("\\$ARTIFACT_NAME\\{(.+)\\}");
 
@@ -73,7 +80,7 @@ public class RundeckNotifier extends Notifier {
 
     private static final int DELAY_BETWEEN_POLLS_IN_MILLIS = 5000;
 
-    private String rundeckInstance;
+    private String rundeckInstance; //TODO: Could be renamed to rundeckInstanceName
 
     private final String jobId;
 
@@ -387,10 +394,10 @@ public class RundeckNotifier extends Notifier {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
-            return new RundeckJobProjectLinkerAction(getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
-        } catch (RundeckApiException e) {
-            return null;
-        } catch (IllegalArgumentException e) {
+            return new RundeckJobProjectLinkerAction(rundeckInstance, getDescriptor().getRundeckInstance(this.rundeckInstance), jobId);
+        } catch (RundeckApiException | IllegalArgumentException e) {
+            log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
+                    e.getClass().getSimpleName(), e.getMessage()));
             return null;
         }
     }
@@ -474,7 +481,11 @@ public class RundeckNotifier extends Notifier {
         private transient RundeckClient rundeckInstance;
 
         @CopyOnWrite
-        private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<String, RundeckClient>();
+        private volatile Map<String, RundeckClient> rundeckInstances = new LinkedHashMap<>();
+
+        private volatile transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
+
+        private volatile RundeckJobCacheConfig rundeckJobCacheConfig = RundeckJobCacheConfig.initializeWithDefaultValues();
 
         public RundeckDescriptor() {
             super();
@@ -483,6 +494,18 @@ public class RundeckNotifier extends Notifier {
 
         public synchronized void load() {
             super.load();
+            initializeRundeckJobCache();
+        }
+
+        private void initializeRundeckJobCache() {
+            if (rundeckJobCacheConfig.isEnabled()) {
+                log.info("Rundeck job cache enabled. Using following configuration: " + rundeckJobCacheConfig);
+                rundeckJobCache = new InMemoryRundeckJobCache(rundeckJobCacheConfig);
+            } else {
+                log.info("Rundeck job cache DISABLED.");
+                rundeckJobCache.invalidate();
+                rundeckJobCache = new DummyRundeckJobCache();
+            }
         }
 
         // support backward compatibility
@@ -530,13 +553,25 @@ public class RundeckNotifier extends Notifier {
                     }
                 }
             } catch (IllegalArgumentException e) {
-                // NOP
+                log.warning(format("Unable to deserialize Rundeck instances fom JSON. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
             }
 
             this.setRundeckInstances(newInstances);
 
+            configureRundeckJobCache(json);
+
             save();
             return super.configure(req, json);
+        }
+
+        private void configureRundeckJobCache(JSONObject json) {
+            boolean cacheEnabledAsBoolean = json.has("rundeckJobCacheEnabled");
+            if (cacheEnabledAsBoolean == rundeckJobCacheConfig.isEnabled()) {   //nothing changed
+                return;
+            }
+
+            rundeckJobCacheConfig.setEnabled(cacheEnabledAsBoolean);
+            initializeRundeckJobCache();
         }
 
         @Override
@@ -545,10 +580,8 @@ public class RundeckNotifier extends Notifier {
             String jobIdentifier = formData.getString("jobIdentifier");
             RundeckJob job = null;
             try {
-                job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
-            } catch (RundeckApiException e) {
-                throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
-            } catch (IllegalArgumentException e) {
+                job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
+            } catch (RundeckApiException | IllegalArgumentException e) {
                 throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
             }
             if (job == null) {
@@ -565,6 +598,18 @@ public class RundeckNotifier extends Notifier {
                                        formData.getBoolean("tailLog"));
         }
 
+        @SuppressWarnings("unused")
+        public FormValidation doDisplayCacheStatistics() {
+            return FormValidation.ok(rundeckJobCache.logAndGetStats());
+        }
+
+        @SuppressWarnings("unused")
+        public FormValidation doInvalidateCache() {
+            rundeckJobCache.invalidate();
+            return FormValidation.ok("Done");
+        }
+
+        @SuppressWarnings("unused")
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                 @QueryParameter("rundeck.login") final String login,
                 @QueryParameter("rundeck.password") final String password,
@@ -611,7 +656,7 @@ public class RundeckNotifier extends Notifier {
                 return FormValidation.error("The job identifier is mandatory !");
             }
             try {
-                RundeckJob job = findJob(jobIdentifier, this.getRundeckInstance(rundeckInstance));
+                RundeckJob job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
@@ -638,6 +683,8 @@ public class RundeckNotifier extends Notifier {
          */
         static String findJobId(String jobIdentifier, RundeckClient rundeckClient) throws RundeckApiException,
                 IllegalArgumentException {
+            log.fine(format("findJobId request for jobId: %s", jobIdentifier));
+            //TODO: Could be rewritten to be cache as well, if needed
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -648,16 +695,29 @@ public class RundeckNotifier extends Notifier {
                 return jobIdentifier;
             }
         }
+
         /**
-         * Find a {@link RundeckJob} with the given identifier
+         * Find a {@link RundeckJob} with the given identifier using internal cache if possible.
          *
          * @param jobIdentifier either a simple ID, an UUID or a reference (project:group/name)
-         * @param rundeckInstance
+         * @param rundeckInstanceName Rundeck instance name
+         * @param rundeckInstance Rundeck client instance
          * @return the {@link RundeckJob} found, or null if not found
          * @throws RundeckApiException in case of error, or if no job with this ID
          * @throws IllegalArgumentException if the identifier is not valid
          */
-        public static RundeckJob findJob(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+        public static RundeckJob findJob(String jobIdentifier, String rundeckInstanceName, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+            RundeckJobCache rundeckJobCache = getRundeckDescriptor().rundeckJobCache;
+            return rundeckJobCache.findJobById(jobIdentifier, rundeckInstanceName, rundeckInstance);
+        }
+
+        public static RundeckJob findJobUncached(String jobIdentifier, RundeckClient rundeckInstance) throws RundeckApiException, IllegalArgumentException {
+            RundeckJobCacheConfig rundeckJobCacheConfig = getRundeckDescriptor().getRundeckJobCacheConfig();
+            if (rundeckJobCacheConfig.isEnabled()) {
+                log.info(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
+            } else {
+                log.fine(format("findJobUncached request for jobId: %s (cache disabled)", jobIdentifier));
+            }
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -686,15 +746,7 @@ public class RundeckNotifier extends Notifier {
                     method.setAccessible(true);
 
                     return method.invoke(instance).toString();
-                } catch (SecurityException e) {
-                    throw new IllegalStateException(e);
-                } catch (NoSuchMethodException e) {
-                    throw new IllegalStateException(e);
-                } catch (IllegalAccessException e) {
-                    throw new IllegalStateException(e);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalStateException(e);
-                } catch (InvocationTargetException e) {
+                } catch (SecurityException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
                     throw new IllegalStateException(e);
                 }
             }
@@ -718,6 +770,10 @@ public class RundeckNotifier extends Notifier {
 
         public void setRundeckInstances(Map<String, RundeckClient> instances) {
             this.rundeckInstances = instances;
+        }
+
+        public RundeckJobCacheConfig getRundeckJobCacheConfig() {
+            return rundeckJobCacheConfig;
         }
     }
 
@@ -748,7 +804,6 @@ public class RundeckNotifier extends Notifier {
 
     }
 
-
     /**
      *
      * @param tagsStr
@@ -772,4 +827,7 @@ public class RundeckNotifier extends Notifier {
         return list.toArray(new String[list.size()]);
     }
 
+    private static RundeckDescriptor getRundeckDescriptor() {
+        return Jenkins.getInstance().getExtensionList(RundeckDescriptor.class).get(0);
+    }
 }

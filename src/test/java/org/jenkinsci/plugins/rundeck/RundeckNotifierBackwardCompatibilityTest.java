@@ -35,6 +35,10 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("login", instance.getLogin());
         assertEquals("password", instance.getPassword());
         assertEquals("9", descriptor.getApiVersion(instance));
+        assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(1080, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes());
+        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize());
+        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold());
     }
     
     @LocalData
@@ -42,7 +46,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
         
         String oldStoredConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
-        
+
         descriptor.save();
         
         String storedConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
@@ -61,7 +65,13 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "        <password>password</password>\n" + 
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
-                "  </rundeckInstances>\n" + 
+                "  </rundeckInstances>\n" +
+                "  <rundeckJobCacheConfig>\n" +
+                "    <enabled>false</enabled>\n" +
+                "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
+                "    <maximumSize>500</maximumSize>\n" +
+                "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
+                "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
         assertEquals(expected, storedConfig);
@@ -101,6 +111,12 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
+                "  <rundeckJobCacheConfig>\n" +
+                "    <enabled>false</enabled>\n" +
+                "    <afterAccessExpirationInMinutes>1080</afterAccessExpirationInMinutes>\n" +
+                "    <maximumSize>500</maximumSize>\n" +
+                "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
+                "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
         
         assertEquals(expected, storedConfig);
@@ -155,14 +171,24 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <shouldFailTheBuild>true</shouldFailTheBuild>\n" + 
                 "      <includeRundeckLogs>false</includeRundeckLogs>\n" + 
                 "      <tailLog>false</tailLog>\n" + 
-                "    </org.jenkinsci.plugins.rundeck.RundeckNotifier>\n" + 
-                "  </publishers>\n" + 
+                "    </org.jenkinsci.plugins.rundeck.RundeckNotifier>\n" +
+                "  </publishers>\n" +
                 "  <buildWrappers/>\n" + 
                 "</project>";
         
         assertEquals(expected, storedConfig);
     }
-    
+
+    @LocalData
+    public void test_GivenADescriptorConfigWithoutCache_WhenInstanciatingDescriptorCacheWithDefaultValuesIsUsed() {
+        RundeckDescriptor descriptor = (RundeckDescriptor) this.jenkins.getDescriptorOrDie(RundeckNotifier.class);
+
+        assertEquals(false, descriptor.getRundeckJobCacheConfig().isEnabled());
+        assertEquals(18 * 60, descriptor.getRundeckJobCacheConfig().getAfterAccessExpirationInMinutes());
+        assertEquals(500, descriptor.getRundeckJobCacheConfig().getMaximumSize());
+        assertEquals(200, descriptor.getRundeckJobCacheConfig().getCacheStatsDisplayHitThreshold());
+    }
+
     private FreeStyleProject getOldJob() {
         return ((FreeStyleProject)this.jenkins.getItem("old"));
     }
