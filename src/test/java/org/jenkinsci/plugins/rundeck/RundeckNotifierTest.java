@@ -8,21 +8,17 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Properties;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.time.DateUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckExecutionBuildBadgeAction;
 import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
+import org.rundeck.api.MockRundeckClient;
 import org.rundeck.api.RunJob;
 import org.rundeck.api.RundeckApiException;
-import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
-import org.rundeck.api.domain.RundeckJob;
 import org.tmatesoft.svn.core.SVNDepth;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
@@ -369,57 +365,4 @@ public class RundeckNotifierTest extends HudsonTestCase {
         return false;
     }
 
-    /**
-     * Just a mock {@link RundeckClient} which is always successful
-     */
-    private static class MockRundeckClient extends RundeckClient {
-
-        private static final long serialVersionUID = 1L;
-
-        public MockRundeckClient() {
-            super("http://localhost:4440", "admin", "admin");
-        }
-
-        @Override
-        public void ping() {
-            // successful
-        }
-
-        @Override
-        public void testCredentials() {
-            // successful
-        }
-
-        @Override
-        public RundeckExecution triggerJob(RunJob job) {
-            return initExecution(ExecutionStatus.RUNNING);
-        }
-
-        @Override
-        public RundeckExecution getExecution(Long executionId) {
-            return initExecution(ExecutionStatus.SUCCEEDED);
-        }
-
-        @Override
-        public RundeckJob getJob(String jobId) {
-            RundeckJob job = new RundeckJob();
-            return job;
-        }
-
-        private RundeckExecution initExecution(ExecutionStatus status) {
-            RundeckExecution execution = new RundeckExecution();
-            execution.setId(1L);
-            execution.setUrl("http://localhost:4440/execution/follow/1");
-            execution.setStatus(status);
-            execution.setStartedAt(new Date(1310159014640L));
-            if (ExecutionStatus.SUCCEEDED.equals(status)) {
-                Date endedAt = execution.getStartedAt();
-                endedAt = DateUtils.addMinutes(endedAt, 3);
-                endedAt = DateUtils.addSeconds(endedAt, 27);
-                execution.setEndedAt(endedAt);
-            }
-            return execution;
-        }
-
-    }
 }
