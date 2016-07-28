@@ -224,7 +224,7 @@ public class RundeckNotifier extends Notifier {
         try {
             EnvVars env = build.getEnvironment(listener);
             runtimeJobId = env.expand(jobId);
-            listener.getLogger().println("Looking for jobId : " + jobId);
+            listener.getLogger().println("Looking for jobId : " + runtimeJobId);
         } catch (IOException | InterruptedException e) {
             listener.getLogger().println("Failed substituting environment in: " + jobId + " : " + e.getMessage());
             return false;
