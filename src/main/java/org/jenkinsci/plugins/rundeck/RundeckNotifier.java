@@ -219,19 +219,30 @@ public class RundeckNotifier extends Notifier {
      * @return true if successful, false otherwise
      */
     private boolean notifyRundeck(RundeckClient rundeck, AbstractBuild<?, ?> build, BuildListener listener) {
+        String runtimeJobId;
+        // perform environment substitution before finding the rundeck job
+        try {
+            EnvVars env = build.getEnvironment(listener);
+            runtimeJobId = env.expand(jobId);
+            listener.getLogger().println("Looking for jobId : " + runtimeJobId);
+        } catch (IOException | InterruptedException e) {
+            listener.getLogger().println("Failed substituting environment in: " + jobId + " : " + e.getMessage());
+            return false;
+        }
+
         //if the jobId is in the form "project:[group/*]name", find the actual job ID first.
         String foundJobId = null;
         try {
-            foundJobId = RundeckDescriptor.findJobId(jobId, rundeck);
+            foundJobId = RundeckDescriptor.findJobId(runtimeJobId, rundeck);
         } catch (RundeckApiException e) {
-            listener.getLogger().println("Failed to get job with the identifier : " + jobId + " : "+e.getMessage());
+            listener.getLogger().println("Failed to get job with the identifier : " + runtimeJobId + " : "+e.getMessage());
             return false;
         } catch (IllegalArgumentException e) {
-            listener.getLogger().println("Failed to get job with the identifier : " + jobId + " : " +e.getMessage());
+            listener.getLogger().println("Failed to get job with the identifier : " + runtimeJobId + " : " +e.getMessage());
             return false;
         }
         if (foundJobId == null) {
-            listener.getLogger().println("Could not find a job with the identifier : " + jobId);
+            listener.getLogger().println("Could not find a job with the identifier : " + runtimeJobId);
             return false;
         }
         try {
@@ -578,14 +589,17 @@ public class RundeckNotifier extends Notifier {
         public Publisher newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             String rundeckInstance = formData.getString("rundeckInstance");
             String jobIdentifier = formData.getString("jobIdentifier");
-            RundeckJob job = null;
-            try {
-                job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
-            } catch (RundeckApiException | IllegalArgumentException e) {
-                throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
-            }
-            if (job == null) {
-                throw new FormException("Could not found a job with the identifier : " + jobIdentifier, "jobIdentifier");
+            if (!jobIdentifier.contains("$")) {
+                // Only check the job name if there are no environment variables to substitute
+                RundeckJob job = null;
+                try {
+                    job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
+                } catch (RundeckApiException | IllegalArgumentException e) {
+                    throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
+                }
+                if (job == null) {
+                    throw new FormException("Could not find a job with the identifier : " + jobIdentifier, "jobIdentifier");
+                }
             }
             return new RundeckNotifier(rundeckInstance,
                                        jobIdentifier,
@@ -656,6 +670,10 @@ public class RundeckNotifier extends Notifier {
                 return FormValidation.error("The job identifier is mandatory !");
             }
             try {
+                if (jobIdentifier.contains("$")) {
+                    return FormValidation.warning("Unable to substitute environment at configuration time. " +
+                            "The build will fail if the job does not exist");
+                }
                 RundeckJob job = findJobUncached(jobIdentifier, this.getRundeckInstance(rundeckInstance));
                 if (job == null) {
                     return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
@@ -690,7 +708,8 @@ public class RundeckNotifier extends Notifier {
                 String project = matcher.group(1);
                 String groupPath = matcher.group(2);
                 String name = matcher.group(3);
-                return rundeckClient.findJob(project, groupPath, name).getId();
+                RundeckJob foundJob = rundeckClient.findJob(project, groupPath, name);
+                return foundJob == null ? null : foundJob.getId();
             } else {
                 return jobIdentifier;
             }
