@@ -164,7 +164,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "  <disabled>false</disabled>\n" + 
                 "  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>\n" + 
                 "  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>\n" + 
-                "  <triggers class=\"vector\"/>\n" + 
+                "  <triggers/>\n" +
                 "  <concurrentBuild>false</concurrentBuild>\n" + 
                 "  <builders/>\n" + 
                 "  <publishers>\n" + 
