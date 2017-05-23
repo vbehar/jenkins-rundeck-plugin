@@ -7,8 +7,9 @@
         </a>
       </td>
       <td style="vertical-align:middle">
-        Associated <a href="http://rundeck.org/">RunDeck</a> Job: 
+        Associated <a href="http://rundeck.org/">Rundeck</a> Job:
         <a href="${it.urlName}">[${it.rundeckJob.project}] ${it.rundeckJob.fullName}</a>
+        (Instance: ${it.instanceName})
         <br />
         <em>${it.rundeckJob.description}</em>
       </td>

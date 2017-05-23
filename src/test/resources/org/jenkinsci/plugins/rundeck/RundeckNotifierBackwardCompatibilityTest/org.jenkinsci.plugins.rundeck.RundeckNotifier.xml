@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor plugin="rundeck@3.4">
+  <rundeckInstance>
+    <url>http://rundeck.org</url>
+    <apiVersion>9</apiVersion>
+    <login>login</login>
+    <password>password</password>
+  </rundeckInstance>
+</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>

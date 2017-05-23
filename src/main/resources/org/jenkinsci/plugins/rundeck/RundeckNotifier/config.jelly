@@ -1,4 +1,23 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  
+  <j:set var="instances" value="${descriptor.getRundeckInstances()}"/>
+  <j:if test="${empty(instances)}">
+    <!-- no Rundeck instance is configured, so warn the user now -->
+    <f:entry title="Rundeck Instance">
+      <div class="error">There are no rundeck instances configured.</div>
+    </f:entry>
+  </j:if>
+  <j:if test="${instances.size() gt 0}">
+    <f:entry title="Rundeck Instance: ">
+      <select class="setting-input" name="rundeckInstance">
+        <j:forEach var="inst" items="${instances}">
+          <f:option value="${inst.key}" selected="${inst.key.equals(instance.rundeckInstance)}">${inst.key}
+          </f:option>
+        </j:forEach>
+      </select>
+    </f:entry>
+  </j:if>
+  
   <f:entry title="Job Identifier" field="jobIdentifier">
     <f:textbox />
   </f:entry>
@@ -11,7 +30,13 @@
   <f:entry title="SCM Tag (optional)" field="tag">
     <f:textbox />
   </f:entry>
-  <f:entry title="Wait for RunDeck job to finish ?" field="shouldWaitForRundeckJob">
+  <f:entry title="Wait for Rundeck job to finish ?" field="shouldWaitForRundeckJob">
+    <f:checkbox />
+  </f:entry>
+  <f:entry title="Include Rundeck job output? (NOTE: requires Wait for Rundeck job to finish)" field="includeRundeckLogs">
+    <f:checkbox />
+  </f:entry>
+  <f:entry title="Tail Logging? (NOTE: requires Wait for Rundeck job to finish &amp; Include Rundeck job output)" field="tailLog">
     <f:checkbox />
   </f:entry>
   <f:entry title="Should fail the build ?" field="shouldFailTheBuild">
