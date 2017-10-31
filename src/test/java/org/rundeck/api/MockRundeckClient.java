@@ -19,6 +19,12 @@ public class MockRundeckClient extends RundeckClient {
         setPassword("admin");
     }
 
+    public MockRundeckClient(String user, String password) {
+        super("http://localhost:4440");
+        setLogin(user);
+        setPassword(password);
+    }
+
     @Override
     public void ping() {
         // successful
