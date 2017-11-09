@@ -17,6 +17,16 @@
       </select>
     </f:entry>
   </j:if>
+
+  <f:entry title="Job user (optional)" field="jobUser">
+    <f:textbox />
+  </f:entry>
+  <f:entry title="User password (optional)" field="jobPassword">
+    <f:password />
+  </f:entry>
+  <f:entry title="Token (optional)" field="jobToken">
+    <f:password />
+  </f:entry>
   
   <f:entry title="Job Identifier" field="jobIdentifier">
     <f:textbox />
