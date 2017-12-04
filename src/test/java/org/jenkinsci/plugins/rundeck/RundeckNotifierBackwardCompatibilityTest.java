@@ -66,6 +66,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
                 "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
                 "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" +
@@ -76,7 +77,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "    <cacheStatsDisplayHitThreshold>200</cacheStatsDisplayHitThreshold>\n" +
                 "  </rundeckJobCacheConfig>\n" +
                 "</org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>";
-        
+
         assertEquals(expected, storedConfig);
     }
     
@@ -100,23 +101,25 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <string>first</string>\n" + 
                 "      <org.rundeck.api.RundeckClient>\n" + 
                 "        <url>http://first</url>\n" + 
-                "        <apiVersion>13</apiVersion>\n" +
+                "        <apiVersion>21</apiVersion>\n" +
                 "        <login>login</login>\n" + 
                 "        <password>password</password>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
                 "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
                 "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "    <entry>\n" + 
                 "      <string>second</string>\n" + 
                 "      <org.rundeck.api.RundeckClient>\n" + 
                 "        <url>http://second</url>\n" + 
-                "        <apiVersion>13</apiVersion>\n" +
+                "        <apiVersion>21</apiVersion>\n" +
                 "        <token>token</token>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
                 "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
                 "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
                 "      </org.rundeck.api.RundeckClient>\n" + 
                 "    </entry>\n" + 
                 "  </rundeckInstances>\n" + 
