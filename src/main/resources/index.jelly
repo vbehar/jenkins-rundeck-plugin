@@ -1,3 +1,4 @@
+<?jelly escape-by-default='true'?>
 <div>
   This plugin is a Notifier (Publisher) that will talk to a <a href="http://www.rundeck.org">Rundeck</a> instance
   (via its HTTP API) to schedule a job execution on Rundeck after a successful build on Jenkins.<br />

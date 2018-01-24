@@ -4,5 +4,4 @@ addons:
     - rdjenkins
   hostname: rdjenkins
 jdk:
-  - openjdk7
   - oraclejdk8
