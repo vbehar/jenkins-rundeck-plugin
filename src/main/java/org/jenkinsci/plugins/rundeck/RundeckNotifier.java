@@ -1,27 +1,9 @@
 package org.jenkinsci.plugins.rundeck;
 
-import static java.lang.String.format;
-
-import hudson.AbortException;
-import hudson.CopyOnWrite;
-import hudson.EnvVars;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Util;
-import hudson.model.Action;
-import hudson.model.BuildBadgeAction;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.Run;
-import hudson.model.TopLevelItem;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Cause;
+import hudson.*;
+import hudson.model.*;
 import hudson.model.Cause.UpstreamCause;
-import hudson.model.Hudson;
 import hudson.model.Run.Artifact;
-import hudson.model.TaskListener;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.tasks.BuildStepDescriptor;
@@ -29,30 +11,14 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
-
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
-import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.InMemoryRundeckJobCache;
+import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -62,14 +28,20 @@ import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
 import org.rundeck.api.RundeckClient;
 import org.rundeck.api.RundeckClientBuilder;
-import org.rundeck.api.domain.RundeckAbort;
-import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.api.domain.*;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
-import org.rundeck.api.domain.RundeckJob;
-import org.rundeck.api.domain.RundeckOutput;
-import org.rundeck.api.domain.RundeckOutputEntry;
 
 import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.lang.String.format;
 
 /**
  * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
@@ -336,10 +308,13 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     private RundeckExecution waitTailingRundeckLogsAndReturnExecution(RundeckClient rundeck, TaskListener listener, RundeckExecution execution) {
         listener.getLogger().println("BEGIN RUNDECK TAILED LOG OUTPUT");
         RunDeckLogTail runDeckLogTail = new RunDeckLogTail(rundeck, execution.getId());
+        PrintStream printStream = listener.getLogger();
         for (List<RundeckOutputEntry> aRunDeckLogTail : runDeckLogTail) {
             for (RundeckOutputEntry rundeckOutputEntry : aRunDeckLogTail) {
-                listener.getLogger().println(String.format("[%s] [%s] %s",
-                        new Object[]{ rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage() }));
+                printStream.println("[" + rundeckOutputEntry.getTime() + "] [" + rundeckOutputEntry.getLevel() + "] " + rundeckOutputEntry.getMessage());
+//                printStream.println(rundeckOutputEntry);
+//                        String.format("[%s] [%s] %s",
+//                        new Object[]{ rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage() }));
             }
         }
         listener.getLogger().println("END RUNDECK TAILED LOG OUTPUT");

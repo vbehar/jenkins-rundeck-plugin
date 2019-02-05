@@ -1,17 +1,15 @@
 package org.jenkinsci.plugins.rundeck;
 
+import org.rundeck.api.RundeckApiException;
+import org.rundeck.api.RundeckClient;
+import org.rundeck.api.domain.RundeckOutput;
+import org.rundeck.api.domain.RundeckOutputEntry;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.rundeck.api.RundeckApiException;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.api.RundeckClientBuilder;
-import org.rundeck.api.domain.RundeckOutput;
-import org.rundeck.api.domain.RundeckOutputEntry;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 
 /**
  * This class implements logtailing for Rundeck.
@@ -78,6 +76,7 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         protected int offset;
         protected boolean completed;
         protected int retries = 0;
+        protected int controlMaxlines = maxlines;
 
         protected List<RundeckOutputEntry> next;
 
@@ -99,11 +98,17 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
                 try {
                     log.log(Level.FINE, "Performing API call for executionId [{0}], using offset [{1}]. fetching a maximum of [{2}] lines.", new Object[] {
                             executionId, offset, maxlines });
-                    RundeckOutput rundeckOutput = rundeckClient.getExecutionOutputState(executionId, false, offset, -1, maxlines);
-
+                    RundeckOutput rundeckOutput = rundeckClient.getExecutionOutputState(executionId, false, offset, -1, controlMaxlines);
                     completed = checkCompletionState(rundeckOutput);
+
                     boolean offsetChanged = updateIterationState(rundeckOutput);
                     addRunDeckOutputEntriesToResults(rundeckOutput);
+
+                    if(checkExecCompletionState(rundeckOutput)){
+                        log.log(Level.FINE, "RunDecks Execution Output is not yet completed but the rundeck job just finished.");
+                        controlMaxlines = -1;
+                    }
+
                     if (!completed) {
                         log.log(Level.FINE, "RunDecks Execution Output is not yet completed. Initializing pause to prevent API hammering");
                         handleSleep(offsetChanged);
@@ -122,11 +127,18 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
         }
 
         private boolean checkCompletionState(RundeckOutput rundeckOutput) {
-
-            boolean outputCompleted = Boolean.TRUE.equals(rundeckOutput.isCompleted());
+            return checkOutputCompletionState(rundeckOutput) && checkExecCompletionState(rundeckOutput);
+        }
+        private boolean checkExecCompletionState(RundeckOutput rundeckOutput) {
             boolean execCompleted = Boolean.TRUE.equals(rundeckOutput.isExecCompleted());
-            log.log(Level.FINE, "Checking completetion state with outputCompleted [{0}] and execCompleted [{1}]", new Object[] { outputCompleted, execCompleted });
-            return outputCompleted && execCompleted;
+            log.log(Level.FINE, "Checking completetion state with execCompleted [{0}]", new Object[] { execCompleted});
+            return execCompleted;
+        }
+
+        private boolean checkOutputCompletionState(RundeckOutput rundeckOutput) {
+            boolean outputCompleted = Boolean.TRUE.equals(rundeckOutput.isCompleted());
+            log.log(Level.FINE, "Checking completetion state with outputCompleted [{0}]", new Object[] { outputCompleted });
+            return outputCompleted;
         }
 
         private void sleepOrThrowException(RuntimeException e) throws InterruptedException {
@@ -152,12 +164,29 @@ public class RunDeckLogTail implements Iterable<List<RundeckOutputEntry>> {
 
             List<RundeckOutputEntry> runDeckOutputEntries = rundeckOutput.getLogEntries();
             if (runDeckOutputEntries != null) {
+                handleMaxlines(runDeckOutputEntries);
                 log.log(Level.FINE, "Got [{0}] rundeckOutputEntries, filtering out empty results and appending resultset.", runDeckOutputEntries.size());
                 for (RundeckOutputEntry rundeckOutputEntry : runDeckOutputEntries) {
                     if (rundeckOutputEntry.getMessage() != null) {
                         next.add(rundeckOutputEntry);
                     }
                 }
+            }
+        }
+
+        private void handleMaxlines(List<RundeckOutputEntry> runDeckOutputEntries){
+            if(controlMaxlines >= maxlines * 10){
+                controlMaxlines = -1;
+                log.log(Level.FINE, "Maxlines has changed, requesting all last results");
+            } else if(controlMaxlines == -1){
+                controlMaxlines = maxlines;
+                log.log(Level.FINE, "Maxlines has changed, requesting the last [{0}] lines.", controlMaxlines);
+            } else if(runDeckOutputEntries.size() == controlMaxlines){
+                controlMaxlines += maxlines;
+                log.log(Level.FINE, "Maxlines has changed, requesting the last [{0}] lines.", controlMaxlines);
+            } else if(runDeckOutputEntries.size() < controlMaxlines && controlMaxlines > maxlines){
+                controlMaxlines -= maxlines;
+                log.log(Level.FINE, "Maxlines has changed, requesting the last [{0}] lines.", controlMaxlines);
             }
         }
 

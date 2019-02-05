@@ -1,23 +1,19 @@
 package org.jenkinsci.plugins.rundeck;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.ArrayList;
-import java.util.List;
-
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.NonStrictExpectations;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckClient;
 import org.rundeck.api.domain.RundeckOutput;
 import org.rundeck.api.domain.RundeckOutputEntry;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 public class RunDeckLogTailTest {
 
@@ -156,6 +152,98 @@ public class RunDeckLogTailTest {
 
         assertTrue(iterator.hasNext());
         assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "amet");
+
+        assertFalse(iterator.hasNext());
+
+    }
+
+    @Test
+    public void verboseLoggingOutput() {
+        new NonStrictExpectations() {
+            {
+                //@formatter:off
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 50, 0L, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 100, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 150, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 200, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 250, anyLong, 2); result = rundeckOutput;
+                rundeckClient.getExecutionOutputState(EXECUTION_ID, false, 300, anyLong, 2); result = rundeckOutput;
+                rundeckOutput.getOffset(); returns(50, 100, 150, 200, 250, 300, 350);
+                rundeckOutput.getLogEntries(); returns(
+                        createLogEntries(new String[] {}),
+                    createLogEntries(new String[] {}),
+                    createLogEntries(new String[] {"dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit"}),
+                    createLogEntries(new String[] {"dolar", "sit"})
+                );
+                rundeckOutput.isCompleted(); returns (false, false, false, false, false, false, false, false, false,false,false,false,false,false,false, true);
+                rundeckOutput.isExecCompleted(); returns (false, false, false, false, false, false,false,false,false,false,false,false,false,false,false, true);
+                //@formatter:on
+            }
+        };
+
+        RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next());
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next());
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit","dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit");
+
+        assertTrue(iterator.hasNext());
+        assertMessagesPresentInOrder(iterator.next(), "dolar", "sit");
+
+        assertFalse(iterator.hasNext());
 
         assertFalse(iterator.hasNext());
 
