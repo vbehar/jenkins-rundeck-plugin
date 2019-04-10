@@ -20,6 +20,7 @@
       <tag>test</tag>
       <shouldWaitForRundeckJob>true</shouldWaitForRundeckJob>
       <shouldFailTheBuild>true</shouldFailTheBuild>
+      <notifyOnAllStatus>false</notifyOnAllStatus>
       <includeRundeckLogs>false</includeRundeckLogs>
       <tailLog>false</tailLog>
     </org.jenkinsci.plugins.rundeck.RundeckNotifier>

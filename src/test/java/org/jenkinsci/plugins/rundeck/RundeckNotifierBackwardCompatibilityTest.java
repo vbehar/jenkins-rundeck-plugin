@@ -181,6 +181,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      </tags>\n" + 
                 "      <shouldWaitForRundeckJob>true</shouldWaitForRundeckJob>\n" + 
                 "      <shouldFailTheBuild>true</shouldFailTheBuild>\n" + 
+                "      <notifyOnAllStatus>false</notifyOnAllStatus>\n" +
                 "      <includeRundeckLogs>false</includeRundeckLogs>\n" + 
                 "      <tailLog>false</tailLog>\n" + 
                 "    </org.jenkinsci.plugins.rundeck.RundeckNotifier>\n" +
