@@ -76,6 +76,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     private final Boolean shouldFailTheBuild;
 
+    private final Boolean notifyOnAllStatus;
+
     private final Boolean includeRundeckLogs;
 
     private final Boolean tailLog;
@@ -87,15 +89,22 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     /** rundeck user during job perform */
     private String performUser;
 
+    RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tags,
+                    Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog,
+                    String jobUser, String jobPassword, String jobToken) {
+        this(rundeckInstance, jobId, options, nodeFilters, tags, shouldWaitForRundeckJob, shouldFailTheBuild, false, includeRundeckLogs, tailLog, jobUser, jobPassword, jobToken);
+    }
+
     RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tag,
                     Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild,
                     String jobUser, String jobPassword, String jobToken) {
-        this(rundeckInstance, jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false, jobUser, jobPassword,jobToken);
+        this(rundeckInstance, jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false, false, jobUser, jobPassword, jobToken);
     }
 
     @DataBoundConstructor
     public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tags,
-                           Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog,
+                           Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean notifyOnAllStatus,
+                           Boolean includeRundeckLogs, Boolean tailLog,
                            String jobUser, String jobPassword, String jobToken) {
         this.rundeckInstance = rundeckInstance;
         this.jobId = jobId;
@@ -105,6 +114,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         this.tag = null;
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
+        this.notifyOnAllStatus = notifyOnAllStatus;
         this.includeRundeckLogs = includeRundeckLogs;
         this.tailLog = tailLog;
         this.jobUser = jobUser;
@@ -125,7 +135,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     @Override
     public void perform(@Nonnull Run<?, ?> run, @Nonnull FilePath filePath, @Nonnull Launcher launcher, @Nonnull TaskListener listener) throws InterruptedException, IOException {
-        if (run.getResult() != Result.SUCCESS && run.getResult() != null) {
+        if (!Boolean.TRUE.equals(notifyOnAllStatus) && run.getResult() != Result.SUCCESS && run.getResult() != null) {
             return;
         }
 
@@ -480,6 +490,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         return shouldFailTheBuild;
     }
 
+    public Boolean getNotifyOnAllStatus() {
+        return notifyOnAllStatus;
+    }
+
     public Boolean getIncludeRundeckLogs() {
         return includeRundeckLogs;
     }
@@ -635,6 +649,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                     formData.getString("tag"),
                     formData.getBoolean("shouldWaitForRundeckJob"),
                     formData.getBoolean("shouldFailTheBuild"),
+                    formData.getBoolean("notifyOnAllStatus"),
                     formData.getBoolean("includeRundeckLogs"),
                     formData.getBoolean("tailLog"),
                     jobUser,
