@@ -27,6 +27,7 @@ import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.rundeck.api.RunJobBuilder;
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
@@ -719,6 +720,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                                                @QueryParameter("rundeck.login") final String login,
                                                @QueryParameter("rundeck.password") final Secret password,
