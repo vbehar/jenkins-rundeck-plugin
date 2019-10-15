@@ -659,12 +659,18 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doDisplayCacheStatistics() {
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+
             return FormValidation.ok(rundeckJobCache.logAndGetStats());
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doInvalidateCache() {
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+
             rundeckJobCache.invalidate();
             return FormValidation.ok("Done");
         }
@@ -676,6 +682,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                @QueryParameter("rundeck.password") final String password,
                                                @QueryParameter(value = "rundeck.authtoken", fixEmpty = true) final String token,
                                                @QueryParameter(value = "rundeck.apiversion", fixEmpty = true) final Integer apiversion) {
+
+
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
 
             RundeckClient rundeck = null;
             RundeckClientBuilder builder = RundeckClient.builder().url(url);
@@ -717,6 +726,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @param token
          * @return
          */
+        @RequirePOST
         public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier,
                                                    @QueryParameter("rundeckInstance") final String rundeckInstance,
                                                    @QueryParameter("jobUser") final String user,
