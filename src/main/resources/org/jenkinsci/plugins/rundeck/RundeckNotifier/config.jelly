@@ -28,9 +28,9 @@
   <f:entry title="Token (optional)" field="jobToken">
     <f:password />
   </f:entry>
-  
-  <f:entry title="Job Identifier" field="jobIdentifier">
-    <f:textbox />
+
+  <f:entry title="Job Identifier" field="jobIdentifier" >
+    <f:textbox checkMethod="post"/>
   </f:entry>
   <f:entry title="Job options (optional)" field="options">
     <f:textarea />
