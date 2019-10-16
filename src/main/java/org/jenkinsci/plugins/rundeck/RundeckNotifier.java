@@ -20,6 +20,7 @@ import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.InMemoryRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -731,7 +732,14 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                    @QueryParameter("rundeckInstance") final String rundeckInstance,
                                                    @QueryParameter("jobUser") final String user,
                                                    @QueryParameter("jobPassword") final String password,
-                                                   @QueryParameter("jobToken") final String token) {
+                                                   @QueryParameter("jobToken") final String token,
+                                                   @AncestorInPath Item item) {
+
+
+            if (item == null) { // no context
+                return FormValidation.ok();
+            }
+            item.checkPermission(Item.CONFIGURE);
 
             if (StringUtils.isBlank(password) && !StringUtils.isBlank(user)) {
                 return FormValidation.error("The password is mandatory if user is not empty !");
