@@ -11,6 +11,7 @@ import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
+import hudson.util.Secret;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
@@ -84,20 +85,20 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     /** for multiple rundeck users */
     private String jobUser;
-    private String jobPassword;
-    private String jobToken;
+    private Secret jobPassword;
+    private Secret jobToken;
     /** rundeck user during job perform */
     private String performUser;
 
     RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tags,
                     Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean includeRundeckLogs, Boolean tailLog,
-                    String jobUser, String jobPassword, String jobToken) {
+                    String jobUser, Secret jobPassword, Secret jobToken) {
         this(rundeckInstance, jobId, options, nodeFilters, tags, shouldWaitForRundeckJob, shouldFailTheBuild, false, includeRundeckLogs, tailLog, jobUser, jobPassword, jobToken);
     }
 
     RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tag,
                     Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild,
-                    String jobUser, String jobPassword, String jobToken) {
+                    String jobUser, Secret jobPassword, Secret jobToken) {
         this(rundeckInstance, jobId, options, nodeFilters, tag, shouldWaitForRundeckJob, shouldFailTheBuild, false, false, false, jobUser, jobPassword, jobToken);
     }
 
@@ -105,7 +106,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     public RundeckNotifier(String rundeckInstance, String jobId, String options, String nodeFilters, String tags,
                            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean notifyOnAllStatus,
                            Boolean includeRundeckLogs, Boolean tailLog,
-                           String jobUser, String jobPassword, String jobToken) {
+                           String jobUser, Secret jobPassword, Secret jobToken) {
         this.rundeckInstance = rundeckInstance;
         this.jobId = jobId;
         this.options = options;
@@ -227,7 +228,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     /**
      * Notify Rundeck : run a job on Rundeck
-     * 
+     *
      * @param rundeck instance to notify
      * @param build for adding actions
      * @param listener for logging the result
@@ -510,11 +511,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         return jobUser;
     }
 
-    public String getJobPassword() {
+    public Secret getJobPassword() {
         return jobPassword;
     }
 
-    public String getJobToken() {
+    public Secret getJobToken() {
         return jobToken;
     }
 
@@ -525,6 +526,25 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     @Extension(ordinal = 1000)
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
+
+        private Secret jobPassword;
+        private Secret jobToken;
+
+        public Secret getJobPassword() {
+            return jobPassword;
+        }
+
+        public void setJobPassword(Secret jobPassword) {
+            this.jobPassword = jobPassword;
+        }
+
+        public Secret getJobToken() {
+            return jobToken;
+        }
+
+        public void setJobToken(Secret jobToken) {
+            this.jobToken = jobToken;
+        }
 
         @Deprecated
         private transient RundeckClient rundeckInstance;
@@ -628,8 +648,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             String rundeckInstance = formData.getString("rundeckInstance");
             String jobIdentifier = formData.getString("jobIdentifier");
             String jobUser = formData.getString("jobUser");
-            String jobPassword = formData.getString("jobPassword");
-            String jobToken = formData.getString("jobToken");
+
             if (!jobIdentifier.contains("$")) {
                 // Only check the job name if there are no environment variables to substitute
                 RundeckJob job = null;
@@ -721,11 +740,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                    @QueryParameter("jobPassword") final String password,
                                                    @QueryParameter("jobToken") final String token) {
 
+
             if (StringUtils.isBlank(password) && !StringUtils.isBlank(user)) {
                 return FormValidation.error("The password is mandatory if user is not empty !");
             }
 
-            RundeckClient client = this.getRundeckJobInstance(rundeckInstance, user, password,token);
+            RundeckClient client = this.getRundeckJobInstance(rundeckInstance, user, Secret.fromString(password),Secret.fromString(token));
 
             if (client == null) {
                 return FormValidation.error("Rundeck global configuration is not valid !");
@@ -858,7 +878,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @return
          */
         public RundeckClient getRundeckJobInstance(String rundeckInstanceName,
-                                                   String jobUser, String jobPassword, String jobToken) {
+                                                   String jobUser, Secret jobPassword, Secret jobToken) {
 
             RundeckClient client = rundeckInstances.get(rundeckInstanceName);
 
@@ -874,18 +894,18 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 RundeckClientBuilder builder = RundeckClient.builder();
                 String url = client.getUrl();
                 builder.url(url);
-                builder.login(jobUser, jobPassword);
+                builder.login(jobUser, jobPassword.getPlainText());
                 builder.version(apiVersion);
                 client = builder.build();
             }
 
-            if ((client != null) && (jobToken != null) && !jobToken.isEmpty())
+            if ((client != null) && (jobToken != null) && !jobToken.getPlainText().isEmpty())
             {
                 // create new instance with given user and password and URL from global instance
                 RundeckClientBuilder builder = RundeckClient.builder();
                 String url = client.getUrl();
                 builder.url(url);
-                builder.token(jobToken);
+                builder.token(jobToken.getPlainText());
                 builder.version(apiVersion);
                 client = builder.build();
             }

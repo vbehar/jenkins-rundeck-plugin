@@ -393,9 +393,9 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testJobWithNonDefaultLogin() throws Exception {
         String login = "myUser";
-        String password = "myPassword";
+        Secret password = Secret.fromString("myPassword");
         RundeckNotifier notifier = new RundeckNotifier("Default", "1", createOptions(), null, "", true, false, login, password, null);
-        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient(login, password));
+        notifier.getDescriptor().addRundeckInstance("Default", new MockRundeckClient(login, password.getPlainText()));
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
