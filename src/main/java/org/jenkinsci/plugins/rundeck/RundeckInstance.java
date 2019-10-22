@@ -52,8 +52,22 @@ public class RundeckInstance {
         return password;
     }
 
+    public String getTokenPlainText() {
+        if(token != null){
+            return token.getPlainText();
+        }
+        return null;
+    }
+
     public void setToken(Secret token) {
         this.token = token;
+    }
+
+    public String getPasswordPlainText() {
+        if(password != null){
+            return password.getPlainText();
+        }
+        return null;
     }
 
     public void setPassword(Secret password) {
