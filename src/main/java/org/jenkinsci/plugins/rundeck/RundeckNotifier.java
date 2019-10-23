@@ -144,7 +144,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return;
         }
 
-        RundeckClient rundeck = getDescriptor().getRundeckJobInstance(this.rundeckInstance, this.jobUser, this.getJobPassword(), this.getJobToken());
+        RundeckClient rundeck = getDescriptor().getRundeckJobInstance(this.rundeckInstance, this.jobUser, this.getPassword(), this.getToken());
 
         if (rundeck == null) {
             listener.getLogger().println("Rundeck configuration is not valid !");
@@ -428,7 +428,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
-            return new RundeckJobProjectLinkerAction(rundeckInstance,getDescriptor().getRundeckJobInstance(this.rundeckInstance, jobUser, this.getJobPassword(),this.getJobToken()), jobId);
+            return new RundeckJobProjectLinkerAction(rundeckInstance,getDescriptor().getRundeckJobInstance(this.rundeckInstance, jobUser, this.getPassword(),this.getToken()), jobId);
         } catch (RundeckApiException | IllegalArgumentException e) {
             log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
                     e.getClass().getSimpleName(), e.getMessage()));
@@ -515,7 +515,15 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         return jobUser;
     }
 
-    public String getJobPassword(){
+    public Secret getJobPassword() {
+        return jobPassword;
+    }
+
+    public Secret getJobToken() {
+        return jobToken;
+    }
+
+    public String getPassword(){
         if(this.jobPassword!=null){
             return this.jobPassword.getPlainText();
         }else{
@@ -523,7 +531,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
     }
 
-    public String getJobToken(){
+    public String getToken(){
         if(this.jobToken!=null){
             return this.jobToken.getPlainText();
         }else{

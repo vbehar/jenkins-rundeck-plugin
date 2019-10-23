@@ -455,7 +455,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
         // check config
         assertTrue(login.equals(notifier.getJobUser()));
-        assertTrue(password.equals(notifier.getJobPassword()));
+        assertTrue(password.equals(notifier.getPassword()));
 
         // build
         FreeStyleBuild build = assertBuildStatusSuccess(project.scheduleBuild2(0).get());
