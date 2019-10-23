@@ -14,6 +14,7 @@ import hudson.tasks.Notifier;
 import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
+import hudson.util.XStream2;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
@@ -35,6 +36,7 @@ import org.rundeck.api.domain.*;
 import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -588,11 +590,14 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return this;
         }
 
-        @Initializer(before = InitMilestone.PLUGINS_STARTED)
-        public static void addAliases() {
-            Items.XSTREAM2.addCompatibilityAlias("org.rundeck.api.RundeckClient", RundeckInstance.class);
-            Run.XSTREAM2.addCompatibilityAlias("org.rundeck.api.RundeckClient", RundeckInstance.class);
+        @Override
+        protected XmlFile getConfigFile() {
+            // required to convert the Descriptor configuration (global setting)
+            XStream2 xs = new XStream2();
+            xs.addCompatibilityAlias("org.rundeck.api.RundeckClient", RundeckInstance.class);
 
+            // same code as super.getConfigFile()
+            return new XmlFile(xs, new File(Jenkins.getActiveInstance().getRootDir(),getId()+".xml"));
         }
 
         @Override
@@ -701,8 +706,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         @SuppressWarnings("unused")
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                                                @QueryParameter("rundeck.login") final String login,
-                                               @QueryParameter("rundeck.password") final String password,
-                                               @QueryParameter(value = "rundeck.authtoken", fixEmpty = true) final String token,
+                                               @QueryParameter("rundeck.password") final Secret password,
+                                               @QueryParameter("rundeck.authtoken") final Secret token,
                                                @QueryParameter(value = "rundeck.apiversion", fixEmpty = true) final Integer apiversion) {
 
             RundeckClient rundeck = null;
@@ -714,10 +719,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 builder.version(RundeckClient.API_VERSION);
             }
             try {
-                if (null != token) {
-                    rundeck = builder.token(token).build();
+                if (!token.getPlainText().isEmpty()) {
+                    rundeck = builder.token(token.getPlainText()).build();
                 } else {
-                    rundeck = builder.login(login, password).build();
+                    rundeck = builder.login(login, password.getPlainText()).build();
                 }
             } catch (IllegalArgumentException e) {
                 return FormValidation.error("Rundeck configuration is not valid ! %s", e.getMessage());
@@ -749,8 +754,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier,
                                                    @QueryParameter("rundeckInstance") final String rundeckInstance,
                                                    @QueryParameter("jobUser") final String user,
-                                                   @QueryParameter("jobPassword") final String password,
-                                                   @QueryParameter("jobToken") final String token) {
+                                                   @QueryParameter("jobPassword") final Secret password,
+                                                   @QueryParameter("jobToken") final Secret token) {
 
 
             if (password==null && !StringUtils.isBlank(user)) {
@@ -759,8 +764,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
             RundeckClient client = this.getRundeckJobInstance(rundeckInstance,
                                                               user,
-                                                              password,
-                                                              token);
+                                                              Util.fixEmpty(password.getPlainText()),
+                                                              Util.fixEmpty(token.getPlainText()));
 
             if (client == null) {
                 return FormValidation.error("Rundeck global configuration is not valid !");

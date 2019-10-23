@@ -24,10 +24,10 @@
               <f:textbox name="rundeck.login" value="${inst.getValue().getLogin()}" />
             </f:entry>
             <f:entry title="Password" help="/plugin/rundeck/help-globalConfig-password.html">
-              <f:password name="rundeck.password" value="${inst.getValue().getPasswordPlainText()}" />
+              <f:password name="rundeck.password" value="${inst.getValue().getPassword()}" />
             </f:entry>
             <f:entry title="Auth Token" help="/plugin/rundeck/help-globalConfig-authtoken.html">
-              <f:password name="rundeck.authtoken" value="${inst.getValue().getTokenPlainText()}" />
+              <f:password name="rundeck.authtoken" value="${inst.getValue().getToken()}" />
             </f:entry>
             <f:entry title="API Version" help="/plugin/rundeck/help-globalConfig-apiversion.html">
               <f:textbox name="rundeck.apiversion" value="${descriptor.getApiVersion(inst.getValue())}" />

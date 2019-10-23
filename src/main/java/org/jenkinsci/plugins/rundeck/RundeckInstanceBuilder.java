@@ -87,7 +87,7 @@ public class RundeckInstanceBuilder {
         if (instance.getToken() != null && !"".equals(instance.getToken().getPlainText())) {
             builder.token(instance.getToken().getPlainText());
         } else {
-            builder.login(instance.getLogin(), instance.getPassword()!=null?instance.getPassword().getPlainText():null);
+            builder.login(instance.getLogin(), instance.getPasswordPlainText());
         }
 
         if (instance.getApiVersion() > 0) {
