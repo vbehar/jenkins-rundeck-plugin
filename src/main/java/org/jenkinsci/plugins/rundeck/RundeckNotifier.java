@@ -111,6 +111,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                            Boolean shouldWaitForRundeckJob, Boolean shouldFailTheBuild, Boolean notifyOnAllStatus,
                            Boolean includeRundeckLogs, Boolean tailLog,
                            String jobUser, Secret jobPassword, Secret jobToken) {
+
         this.rundeckInstance = rundeckInstance;
         this.jobId = jobId;
         this.options = options;
@@ -677,7 +678,13 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 // Only check the job name if there are no environment variables to substitute
                 RundeckJob job = null;
                 try {
-                    job = findJobUncached(jobIdentifier, this.getRundeckJobInstance(rundeckInstance, jobUser,jobPassword,jobToken));
+
+                    Secret password = Secret.fromString(jobPassword);
+                    Secret token = Secret.fromString(jobToken);
+
+                    job = findJobUncached(jobIdentifier, this.getRundeckJobInstance(rundeckInstance, jobUser,
+                            Util.fixEmpty(password.getPlainText()),
+                            Util.fixEmpty(token.getPlainText())));
                 } catch (RundeckApiException | IllegalArgumentException e) {
                     throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
                 }
@@ -770,10 +777,21 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 return FormValidation.error("The password is mandatory if user is not empty !");
             }
 
-            RundeckClient client = this.getRundeckJobInstance(rundeckInstance,
-                                                              user,
-                                                              Util.fixEmpty(password.getPlainText()),
-                                                              Util.fixEmpty(token.getPlainText()));
+            if(rundeckInstance == null){
+                return FormValidation.error("There are no rundeck instances configured. !");
+            }
+
+            RundeckClient client = null;
+
+
+            try {
+                client = this.getRundeckJobInstance(rundeckInstance,
+                        user,
+                        Util.fixEmpty(password.getPlainText()),
+                        Util.fixEmpty(token.getPlainText()));
+            }catch (Exception e){
+                return FormValidation.error(e.getMessage());
+            }
 
             if (client == null) {
                 return FormValidation.error("Rundeck global configuration is not valid !");
@@ -858,15 +876,27 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 log.fine(format("findJobUncached request for jobId: %s (cache disabled)", jobIdentifier));
             }
 
+
+            RundeckJob job = null;
+
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
                 String groupPath = matcher.group(2);
                 String name = matcher.group(3);
-                return rundeckInstance.findJob(project, groupPath, name);
+                try{
+                    job = rundeckInstance.findJob(project, groupPath, name);
+                }catch (Exception e){
+                    log.warning(e.getMessage());
+                }
             } else {
-                return rundeckInstance.getJob(jobIdentifier);
+                try{
+                    job = rundeckInstance.getJob(jobIdentifier);
+                }catch (Exception e){
+                    log.warning(e.getMessage());
+                }
             }
+            return job;
         }
 
         @Override
@@ -897,6 +927,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
 
             RundeckInstance instance = rundeckInstances.get(rundeckInstanceName);
+
+            if(instance==null){
+                return null;
+            }
 
             RundeckClient client;
             if(rundeckBuilder==null) {
