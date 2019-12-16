@@ -24,9 +24,11 @@ import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.InMemoryRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.rundeck.api.RunJobBuilder;
 import org.rundeck.api.RundeckApiException;
 import org.rundeck.api.RundeckApiException.RundeckApiLoginException;
@@ -708,22 +710,32 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doDisplayCacheStatistics() {
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+
             return FormValidation.ok(rundeckJobCache.logAndGetStats());
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doInvalidateCache() {
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+
             rundeckJobCache.invalidate();
             return FormValidation.ok("Done");
         }
 
         @SuppressWarnings("unused")
+        @RequirePOST
         public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
                                                @QueryParameter("rundeck.login") final String login,
                                                @QueryParameter("rundeck.password") final Secret password,
                                                @QueryParameter("rundeck.authtoken") final Secret token,
                                                @QueryParameter(value = "rundeck.apiversion", fixEmpty = true) final Integer apiversion) {
+
+
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
 
             RundeckClient rundeck = null;
             RundeckClientBuilder builder = RundeckClient.builder().url(url);
@@ -766,12 +778,20 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @param token
          * @return
          */
+        @RequirePOST
         public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier,
                                                    @QueryParameter("rundeckInstance") final String rundeckInstance,
                                                    @QueryParameter("jobUser") final String user,
                                                    @QueryParameter("jobPassword") final Secret password,
-                                                   @QueryParameter("jobToken") final Secret token) {
+                                                   @QueryParameter("jobToken") final Secret token,
+                                                   @AncestorInPath Item item) {  
 
+
+            if (item == null) { // no context
+                return FormValidation.ok();
+            }
+          
+            item.checkPermission(Item.CONFIGURE);
 
             if (password==null && !StringUtils.isBlank(user)) {
                 return FormValidation.error("The password is mandatory if user is not empty !");
