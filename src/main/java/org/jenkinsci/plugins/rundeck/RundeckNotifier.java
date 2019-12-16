@@ -24,6 +24,7 @@ import org.jenkinsci.plugins.rundeck.cache.DummyRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.InMemoryRundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -51,7 +52,7 @@ import static java.lang.String.format;
 
 /**
  * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
- * 
+ *
  * @author Vincent Behar
  */
 public class RundeckNotifier extends Notifier implements SimpleBuildStep {
@@ -180,7 +181,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     /**
      * Check if we need to notify Rundeck for this build. If we have a tag, we will look for it in the changelog of the
      * build and in the changelog of all upstream builds.
-     * 
+     *
      * @param build for checking the changelog
      * @param listener for logging the result
      * @return true if we should notify Rundeck, false otherwise
@@ -782,8 +783,14 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                    @QueryParameter("rundeckInstance") final String rundeckInstance,
                                                    @QueryParameter("jobUser") final String user,
                                                    @QueryParameter("jobPassword") final Secret password,
-                                                   @QueryParameter("jobToken") final Secret token) {
+                                                   @QueryParameter("jobToken") final Secret token,
+                                                   @AncestorInPath Item item) {
 
+            if (item == null) { // no context
+                return FormValidation.ok();
+            }
+
+            item.checkPermission(Item.CONFIGURE);
 
             if (password==null && !StringUtils.isBlank(user)) {
                 return FormValidation.error("The password is mandatory if user is not empty !");
