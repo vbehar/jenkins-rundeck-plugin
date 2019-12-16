@@ -52,7 +52,7 @@ import static java.lang.String.format;
 
 /**
  * Jenkins {@link Notifier} that runs a job on Rundeck (via the {@link RundeckClient})
- *
+ * 
  * @author Vincent Behar
  */
 public class RundeckNotifier extends Notifier implements SimpleBuildStep {
@@ -181,7 +181,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     /**
      * Check if we need to notify Rundeck for this build. If we have a tag, we will look for it in the changelog of the
      * build and in the changelog of all upstream builds.
-     *
+     * 
      * @param build for checking the changelog
      * @param listener for logging the result
      * @return true if we should notify Rundeck, false otherwise
@@ -784,12 +784,13 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                    @QueryParameter("jobUser") final String user,
                                                    @QueryParameter("jobPassword") final Secret password,
                                                    @QueryParameter("jobToken") final Secret token,
-                                                   @AncestorInPath Item item) {
+                                                   @AncestorInPath Item item) {  
+
 
             if (item == null) { // no context
                 return FormValidation.ok();
             }
-
+          
             item.checkPermission(Item.CONFIGURE);
 
             if (password==null && !StringUtils.isBlank(user)) {
