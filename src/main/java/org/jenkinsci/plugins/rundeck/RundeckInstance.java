@@ -117,7 +117,6 @@ public class RundeckInstance {
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +
-                ", password=" + password +
                 ", sslHostnameVerifyAllowAll=" + sslHostnameVerifyAllowAll +
                 ", sslCertificateTrustAllowSelfSigned=" + sslCertificateTrustAllowSelfSigned +
                 ", systemProxyEnabled=" + systemProxyEnabled +
