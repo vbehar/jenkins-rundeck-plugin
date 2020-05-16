@@ -4,22 +4,28 @@ import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
+import org.apache.commons.lang.StringUtils;
 import org.rundeck.api.domain.RundeckExecution;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
- * The cause of a RunDeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the RunDeck
+ * The cause of a Rundeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the Rundeck
  * notification).
  * 
  * @author Vincent Behar
  */
 public class RundeckCause extends Cause {
 
+    private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
+
     private final RundeckExecution execution;
 
     /**
      * Instantiate a new cause for the given execution
      * 
-     * @param execution at the origin of the RunDeck notification
+     * @param execution at the origin of the Rundeck notification
      */
     public RundeckCause(RundeckExecution execution) {
         super();
@@ -32,7 +38,7 @@ public class RundeckCause extends Cause {
         if (execution != null) {
             description.append("Started by <a href=\"");
             description.append(execution.getUrl());
-            description.append("\">RunDeck Execution #");
+            description.append("\">Rundeck Execution #");
             description.append(execution.getId());
             description.append("</a>");
             if (execution.getJob() != null) {
@@ -42,7 +48,7 @@ public class RundeckCause extends Cause {
                 description.append(execution.getJob().getFullName());
             }
         } else {
-            description.append("Started by a RunDeck Notification");
+            description.append("Started by a Rundeck Notification");
         }
         return description.toString();
     }
@@ -94,7 +100,7 @@ public class RundeckCause extends Cause {
         /**
          * Instantiate a new action, which will use the data from the given execution
          * 
-         * @param execution at the origin of the RunDeck notification
+         * @param execution at the origin of the Rundeck notification
          */
         public RundeckExecutionEnvironmentContributingAction(RundeckExecution execution) {
             super();
@@ -122,11 +128,29 @@ public class RundeckCause extends Cause {
                 env.put("RDECK_EXEC_SHORT_DURATION", String.valueOf(execution.getShortDuration()));
                 env.put("RDECK_EXEC_URL", String.valueOf(execution.getUrl()));
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
+
+                if ( StringUtils.isNotEmpty(execution.getArgstring())) {
+                    // Split argstring around hyphens at the beginning or a combination of whitespace and hyphen
+                    String[] args = execution.getArgstring().split("^-|\\s-");
+                    for (int i = 1; i < args.length; i++) {
+                        final Matcher matcher = ARG_STRING_PATTERN.matcher(args[i]);
+                        if (matcher.matches()) {
+                            final String key = matcher.group(1);
+                            String value = StringUtils.trim(matcher.group(2));
+                            if (value.endsWith("\"")) {
+                                value = value.substring(0, value.length()-1);
+                            }
+
+                            env.put("RDECK_EXEC_ARG_" + key, value);
+                        }
+                    }
+                }
+
             }
         }
 
         public String getDisplayName() {
-            return execution != null ? "Started by RunDeck Execution #" + execution.getId() : null;
+            return execution != null ? "Started by Rundeck Execution #" + execution.getId() : null;
         }
 
         public String getIconFileName() {

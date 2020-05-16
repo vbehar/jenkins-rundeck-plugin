@@ -1,10 +1,13 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.TopLevelItem;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.Run.Artifact;
+import hudson.model.TopLevelItem;
 import hudson.util.RunList;
 import java.io.IOException;
 import java.io.Serializable;
@@ -19,7 +22,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 /**
- * Option provider for RunDeck - see http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
+ * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
  * 
  * @author Vincent Behar
  */
@@ -33,7 +36,7 @@ public class OptionProvider {
      */
     public void doArtifact(StaplerRequest request, StaplerResponse response) throws IOException {
         // mandatory parameters
-        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
+        Job<?, ?> project = findProject(request.getParameter("project"));
         if (project == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
             return;
@@ -69,6 +72,36 @@ public class OptionProvider {
     }
 
     /**
+     * Builds a string representation of a tree of items
+     *
+     * @param item The item to traverse. Pass in null to start at the top level.
+     * @param sb A StringBuffer to hold the results.
+     */
+    private String getItemTree(Item item, StringBuffer sb) {
+        if (item == null) {
+            List<TopLevelItem> topItems = Hudson.getInstance().getItems();
+            for (TopLevelItem topItem: topItems) {
+                getItemTree(topItem, sb);
+            }
+        } else {
+            if (item instanceof ItemGroup) {
+                ItemGroup groupItem = (ItemGroup)item;
+                for (Object anItem: groupItem.getItems()) {
+                    if (anItem instanceof Item) {
+                        Item subItem = (Item)anItem;
+                        getItemTree(subItem, sb);
+                    }
+                }
+            } else {
+                sb.append(item.getFullName());
+                sb.append("\n");
+            }
+        }
+        // Add special handling for %2F (/ character) separator between multibranch pipeline project path elements
+        return sb.toString().replaceAll("%2F","%252F");
+    }
+
+    /**
      * Provider for builds of a specific artifact, with the version/date of the build and absolute url of the artifact.<br>
      * Mandatory parameters : "project" and either "artifact" (exact filename of the artifact) or "artifactRegex" (java
      * regex used to match against the filename of the artifact).<br>
@@ -77,9 +110,12 @@ public class OptionProvider {
      */
     public void doBuild(StaplerRequest request, StaplerResponse response) throws IOException {
         // mandatory parameters
-        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
+        Job<?, ?> project = findProject(request.getParameter("project"));
+
         if (project == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
+            StringBuffer sb = new StringBuffer();
+            String itemTree = getItemTree(null, sb);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !" + "\n\n" + itemTree);
             return;
         }
         String artifactName = request.getParameter("artifact");
@@ -114,7 +150,7 @@ public class OptionProvider {
         for (Run<?, ?> build : builds) {
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (artifact != null) {
-                String buildName = "#" + build.getNumber() + " - " + build.getTimestampString2();
+                String buildName = build.getDisplayName();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
             }
 
@@ -153,19 +189,14 @@ public class OptionProvider {
      * Find the Jenkins project matching the given name.
      * 
      * @param projectName
-     * @return an {@link AbstractProject} instance, or null if not found
+     * @return an {@link Job} instance, or null if not found
      */
-    private AbstractProject<?, ?> findProject(String projectName) {
+    private Job<?, ?> findProject(String projectName) {
         if (StringUtils.isBlank(projectName)) {
             return null;
         }
 
-        TopLevelItem item = Hudson.getInstance().getItem(projectName);
-        if (AbstractProject.class.isInstance(item)) {
-            return (AbstractProject<?, ?>) item;
-        }
-
-        return null;
+        return Hudson.getInstance().getItemByFullName(projectName, Job.class);
     }
 
     /**
@@ -176,7 +207,7 @@ public class OptionProvider {
      * @param project
      * @return a {@link Run} instance representing the build, or null if we couldn't event find the last build.
      */
-    private Run<?, ?> findBuild(String buildNumber, AbstractProject<?, ?> project) {
+    private Run<?, ?> findBuild(String buildNumber, Job<?, ?> project) {
         // first, try with a direct build number reference
         try {
             Integer buildNb = Integer.parseInt(buildNumber);
@@ -239,14 +270,14 @@ public class OptionProvider {
      */
     private String buildArtifactUrl(Run<?, ?> build, Artifact artifact) {
         StringBuilder url = new StringBuilder();
-        url.append(Hudson.getInstance().getRootUrlFromRequest());
+        url.append(Hudson.getInstance().getRootUrl());
         url.append(build.getUrl()).append("artifact/").append(artifact.getHref());
         return url.toString();
     }
 
     /**
      * Outputs the given list of options as a JSON. See format at
-     * http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
+     * http://rundeck.org/docs/manual/job-options.html#option-model-provider
      * 
      * @param options
      * @param response

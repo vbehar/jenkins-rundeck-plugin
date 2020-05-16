@@ -4,7 +4,7 @@ import hudson.Extension;
 import hudson.Plugin;
 
 /**
- * Entry point for the RunDeck plugin
+ * Entry point for the Rundeck plugin
  * 
  * @author Vincent Behar
  */

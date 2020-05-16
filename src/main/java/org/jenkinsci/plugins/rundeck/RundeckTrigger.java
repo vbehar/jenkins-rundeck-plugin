@@ -17,7 +17,7 @@ import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
 
 /**
- * Triggers a build when we receive a WebHook notification from RunDeck.
+ * Triggers a build when we receive a WebHook notification from Rundeck.
  * 
  * @author Vincent Behar
  */
@@ -37,7 +37,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
     }
 
     /**
-     * Called when we receive a RunDeck notification
+     * Called when we receive a Rundeck notification
      * 
      * @param execution at the origin of the notification
      */
@@ -133,7 +133,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
         @Override
         public String getDisplayName() {
-            return "Build when we receive a notification from RunDeck";
+            return "Build when we receive a notification from Rundeck";
         }
 
         /**
