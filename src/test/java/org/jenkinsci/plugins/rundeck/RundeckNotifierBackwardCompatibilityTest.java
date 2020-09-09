@@ -56,7 +56,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         Secret password = Secret.fromString("password");
 
-        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
                 "  <rundeckInstances class=\"linked-hash-map\">\n" +
                 "    <entry>\n" +
@@ -101,7 +101,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         String storedConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
 
-        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
                 "  <rundeckInstances class=\"linked-hash-map\">\n" +
                 "    <entry>\n" +
@@ -163,7 +163,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         String storedConfig = FileUtils.readFileToString(job.getConfigFile().getFile());
 
-        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<project>\n" +
                 "  <actions/>\n" +
                 "  <description></description>\n" +

@@ -1,47 +1,41 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.api.RundeckClientBuilder;
-
-import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
 public class RundeckInstanceBuilder {
     private String url;
-    private int apiVersion=RundeckClient.API_VERSION;
+    private int apiVersion=RundeckClientManager.API_VERSION;
     private String login;
     private Secret token;
     private Secret password;
-    RundeckClient client;
+    RundeckClientManager client;
 
     public RundeckInstanceBuilder() {
     }
 
-    void setClient(RundeckClient client){
+    void setClient(RundeckClientManager client){
         this.client = client;
     }
 
-    RundeckClient getClient(){
+    RundeckClientManager getClient(){
         return client;
     }
 
-    RundeckInstanceBuilder client(RundeckClient client){
-        this.url = client.getUrl();
-         if(client.getPassword()!=null){
-            this.password = Secret.fromString(client.getPassword());
+    RundeckInstanceBuilder client(RundeckClientManager client){
+        this.url = client.getRundeckInstance().getUrl();
+         if(client.getRundeckInstance().getPassword()!=null){
+            this.password = client.getRundeckInstance().getPassword();
         }
-        if(client.getToken()!=null){
-            this.token = Secret.fromString(client.getToken());
+        if(client.getRundeckInstance().getToken()!=null){
+            this.token = client.getRundeckInstance().getToken();
         }
-        this.login = client.getLogin();
+        this.login = client.getRundeckInstance().getLogin();
 
-        String apiVersionLoaded = this.getApiVersion(client);
-        if(apiVersionLoaded!=null && !apiVersionLoaded.isEmpty()){
-            this.apiVersion = Integer.valueOf(apiVersionLoaded);
+        if(client.getRundeckInstance().getApiVersion()!=null){
+            this.apiVersion = client.getRundeckInstance().getApiVersion();
         }else{
-            this.apiVersion = RundeckClient.API_VERSION;
+            this.apiVersion = RundeckClientManager.API_VERSION;
         }
 
         return this;
@@ -80,24 +74,13 @@ public class RundeckInstanceBuilder {
     }
 
 
-    static RundeckClient createClient(RundeckInstance instance){
-
-        RundeckClientBuilder builder = RundeckClient.builder();
-        builder.url(instance.getUrl());
-        if (instance.getToken() != null && !"".equals(instance.getToken().getPlainText())) {
-            builder.token(instance.getToken().getPlainText());
-        } else {
-            builder.login(instance.getLogin(), instance.getPasswordPlainText());
-        }
-
-        if (instance.getApiVersion() > 0) {
-            builder.version(instance.getApiVersion());
-        }
-
-        return  builder.build();
-
+    static RundeckClientManager createClient(RundeckInstance instance){
+        RundeckClientManager clientManager = new RundeckClientManager(instance);
+        clientManager.buildClient();
+        return clientManager;
     }
 
+    /*
     public String getApiVersion(RundeckClient instance) {
         if (instance != null) {
             try {
@@ -112,6 +95,8 @@ public class RundeckInstanceBuilder {
 
         return "";
     }
+
+     */
 
     @Override
     public String toString() {

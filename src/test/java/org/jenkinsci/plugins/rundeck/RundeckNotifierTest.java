@@ -47,6 +47,7 @@ import org.tmatesoft.svn.core.wc.SVNClientManager;
  */
 public class RundeckNotifierTest extends HudsonTestCase {
 
+    /*
     public void testCommitWithoutTag() throws Exception {
 
         RundeckClient client = new MockRundeckClient();
@@ -422,6 +423,8 @@ public class RundeckNotifierTest extends HudsonTestCase {
                 SVNDepth.EMPTY);
     }
 
+     */
+
     /**
      * @param build
      * @param actionClass
@@ -436,6 +439,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         return false;
     }
 
+    /*
     public void testJobWithNonDefaultLogin() throws Exception {
         String login = "myUser";
         String password = "myPassword";
@@ -465,5 +469,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         assertTrue(s.contains("Notification succeeded !"));
 
     }
+
+     */
 
 }

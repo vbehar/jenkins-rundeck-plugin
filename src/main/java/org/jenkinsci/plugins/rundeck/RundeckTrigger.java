@@ -11,14 +11,17 @@ import java.util.List;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rundeck.client.ExecutionData;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.api.domain.RundeckExecution;
 import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.client.api.model.Execution;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * Triggers a build when we receive a WebHook notification from Rundeck.
- * 
+ *
  * @author Vincent Behar
  */
 public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
@@ -38,18 +41,20 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     /**
      * Called when we receive a Rundeck notification
-     * 
+     *
      * @param execution at the origin of the notification
      */
     public void onNotification(RundeckExecution execution) {
         if (shouldScheduleBuild(execution)) {
-            job.scheduleBuild(new RundeckCause(execution));
+            if(job != null){
+                job.scheduleBuild(new RundeckCause(execution));
+            }
         }
     }
 
     /**
-     * Filter notifications based on the {@link RundeckExecution} and the trigger configuration
-     * 
+     * Filter notifications based on the {@link Execution} and the trigger configuration
+     *
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
@@ -70,7 +75,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     /**
      * Check if the given jobIdentifier matches (= identifies) the given job
-     * 
+     *
      * @param jobIdentifier could be either a job's UUID, or a reference to a job in the format "project:group/job"
      * @param job to test
      * @return true if it matches, false otherwise
