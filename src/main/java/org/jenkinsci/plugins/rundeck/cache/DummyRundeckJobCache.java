@@ -3,8 +3,8 @@ package org.jenkinsci.plugins.rundeck.cache;
 import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.rundeck.RundeckNotifier;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.api.domain.RundeckJob;
+import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * Dummy Rundeck job cache implementation based. Used as a placeholder when caching is disabled.
@@ -17,7 +17,7 @@ public class DummyRundeckJobCache implements RundeckJobCache {
     private static final Logger log = Logger.getLogger(DummyRundeckJobCache.class.getName());
 
     @Override
-    public RundeckJob findJobById(String rundeckJobId, String rundeckInstanceName, RundeckClient rundeckInstance) {
+    public JobItem findJobById(String rundeckJobId, String rundeckInstanceName, RundeckClientManager rundeckInstance) {
         return RundeckNotifier.RundeckDescriptor.findJobUncached(rundeckJobId, rundeckInstance);
     }
 
