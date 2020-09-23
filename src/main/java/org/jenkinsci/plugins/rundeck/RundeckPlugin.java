@@ -5,11 +5,11 @@ import hudson.Plugin;
 
 /**
  * Entry point for the Rundeck plugin
- * 
+ *
  * @author Vincent Behar
  */
 @Extension
-public class RundeckPlugin extends Plugin {
+public class  RundeckPlugin extends Plugin {
 
     private OptionProvider optionProvider;
 

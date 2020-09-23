@@ -22,6 +22,7 @@ public class RunDeckLogTailTest {
 
     private static final long EXECUTION_ID = 1L;
 
+
     @Mocked
     private RundeckClientManager rundeckClient;
 
@@ -60,7 +61,7 @@ public class RunDeckLogTailTest {
             }
         };
 
-         */
+
 
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
@@ -74,7 +75,7 @@ public class RunDeckLogTailTest {
         assertMessagesPresentInOrder(iterator.next(), "amet");
 
         assertFalse(iterator.hasNext());
-
+        */
     }
 
     @Test
@@ -88,7 +89,7 @@ public class RunDeckLogTailTest {
             }
         };
 
-         */
+
 
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
@@ -107,6 +108,7 @@ public class RunDeckLogTailTest {
         } catch (RundeckApiException e) {
             assertEquals("fail!", e.getMessage());
         }
+         */
     }
 
     @Test
@@ -128,7 +130,7 @@ public class RunDeckLogTailTest {
             }
         };
 
-         */
+
 
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
@@ -136,6 +138,8 @@ public class RunDeckLogTailTest {
         assertMessagesPresentInOrder(iterator.next(), "lorem", "ipsum");
 
         assertFalse(iterator.hasNext());
+
+         */
     }
 
     @Test
@@ -155,7 +159,7 @@ public class RunDeckLogTailTest {
             }
         };
 
-         */
+
 
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
@@ -169,6 +173,8 @@ public class RunDeckLogTailTest {
         assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "amet");
 
         assertFalse(iterator.hasNext());
+
+         */
 
     }
 
@@ -209,7 +215,6 @@ public class RunDeckLogTailTest {
             }
         };
 
-         */
 
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
@@ -264,7 +269,7 @@ public class RunDeckLogTailTest {
         assertFalse(iterator.hasNext());
 
         assertFalse(iterator.hasNext());
-
+ */
     }
 
     @Test
@@ -283,9 +288,6 @@ public class RunDeckLogTailTest {
                 //@formatter:on
             }
         };
-
-         */
-
         RunDeckLogTail.RunDeckLogTailIterator iterator = runDeckLogTail.iterator();
 
         assertTrue(iterator.hasNext());
@@ -298,7 +300,7 @@ public class RunDeckLogTailTest {
         assertMessagesPresentInOrder(iterator.next(), "dolar", "sit", "amet");
 
         assertFalse(iterator.hasNext());
-
+ */
     }
 
     public void assertMessagesPresentInOrder(List<ExecLog> rundeckOutputEntries, String... messages) {

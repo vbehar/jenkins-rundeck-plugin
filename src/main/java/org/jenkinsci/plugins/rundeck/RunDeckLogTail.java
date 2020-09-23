@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.rundeck.client.api.model.ExecLog;
 import org.rundeck.client.api.model.ExecOutput;
 
@@ -21,7 +22,7 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
 
     private static final Logger log = Logger.getLogger(RunDeckLogTail.class.getName());
 
-    private final RundeckClientManager rundeckClient;
+    private final RundeckManager rundeckClient;
     private final Long executionId;
     private final int maxlines;
     private final int maxRetries;
@@ -31,33 +32,30 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
 
     /**
      * Standard constructor that contains sensible defaults for handling the API calls correctly.
-     *
-     * @param rundeckClient
+     *  @param rundeckClient
      * @param executionId
      */
-    public RunDeckLogTail(RundeckClientManager rundeckClient, Long executionId) {
+    public RunDeckLogTail(RundeckManager rundeckClient, Long executionId) {
         this(rundeckClient, executionId, 50, 5, 15000L, 5000L, 2000L);
     }
 
     /**
      * Extended constructor containing all the variables that can be set.
-     *
-     * @param rundeckClient
+     *  @param rundeckClient
      *            the runDeckClient
      * @param executionId
      *            the id of the RunDeck job
      * @param maxlines
-     *            the maximum number of lines to fetch on each API call
+ *            the maximum number of lines to fetch on each API call
      * @param maxRetries
-     *            the maximum number of retry attempts if the api call fails
+*            the maximum number of retry attempts if the api call fails
      * @param sleepRetry
-     *            sleep time in ms that will be triggered if a api call fails
+*            sleep time in ms that will be triggered if a api call fails
      * @param sleepUnmodified
-     *            sleep time in ms when the results are unmodified
+*            sleep time in ms when the results are unmodified
      * @param sleepModified
-     *            sleep time in ms when the results are modified.
      */
-    public RunDeckLogTail(RundeckClientManager rundeckClient, Long executionId, int maxlines, int maxRetries, long sleepRetry, long sleepUnmodified, long sleepModified) {
+    public RunDeckLogTail(RundeckManager rundeckClient, Long executionId, int maxlines, int maxRetries, long sleepRetry, long sleepUnmodified, long sleepModified) {
         this.rundeckClient = rundeckClient;
         this.executionId = executionId;
         this.maxlines = maxlines;
@@ -133,7 +131,8 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
             return checkOutputCompletionState(rundeckOutput) && checkExecCompletionState(rundeckOutput);
         }
         private boolean checkExecCompletionState(ExecOutput rundeckOutput) {
-            boolean execCompleted = Boolean.TRUE.equals(rundeckOutput.completed);
+            boolean execCompleted = Boolean.TRUE.equals(rundeckOutput.execCompleted);
+
             log.log(Level.FINE, "Checking completetion state with execCompleted [{0}]", new Object[] { execCompleted});
             return execCompleted;
         }
@@ -209,7 +208,7 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
 
         @Override
         public List<ExecLog> next() {
-            if (!this.hasNext()) {
+            if (next==null) {
                 throw new NoSuchElementException();
             }
             return next;

@@ -264,7 +264,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
         try {
 
-            Response<Execution> executionResponse = rundeckClientManager.runExecution(foundJobId, options, nodeFilters);
+            Properties optionProperties = parseProperties(options, build, listener);
+            Properties nodeFiltersProperties = parseProperties(nodeFilters, build, listener);
+
+            Response<Execution> executionResponse = rundeckClientManager.runExecution(foundJobId, optionProperties, nodeFiltersProperties);
 
             if(!executionResponse.isSuccessful()){
                 throw new AbortException("Error running the jon : " + executionResponse.message());
@@ -281,7 +284,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
              */
 
             listener.getLogger().printf("Notification succeeded ! Execution #%s, at %s (status : %s)%n",
-                    execution.getId(), execution.getHref(), execution.getStatus());
+                    execution.getId(), execution.getPermalink(), execution.getStatus());
             build.addAction(new RundeckExecutionBuildBadgeAction(execution.getPermalink()));
 
             if (Boolean.TRUE.equals(shouldWaitForRundeckJob)) {

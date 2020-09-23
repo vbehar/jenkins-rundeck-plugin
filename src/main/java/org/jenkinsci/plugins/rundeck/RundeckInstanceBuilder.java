@@ -76,7 +76,6 @@ public class RundeckInstanceBuilder {
 
     static RundeckClientManager createClient(RundeckInstance instance){
         RundeckClientManager clientManager = new RundeckClientManager(instance);
-        clientManager.buildClient();
         return clientManager;
     }
 

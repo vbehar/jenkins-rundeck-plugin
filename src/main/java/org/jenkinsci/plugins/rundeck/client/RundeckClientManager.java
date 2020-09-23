@@ -14,15 +14,20 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
-public class RundeckClientManager {
+public class RundeckClientManager implements RundeckManager {
 
     final public static Integer API_VERSION = 32;
     private RundeckInstance rundeckInstance;
     private Client<RundeckApi> client;
 
+    public RundeckClientManager() {
+    }
+
     public RundeckClientManager(RundeckInstance rundeckInstance) {
         this.rundeckInstance = rundeckInstance;
+        buildClient();
     }
 
     public RundeckInstance getRundeckInstance() {
@@ -65,16 +70,19 @@ public class RundeckClientManager {
 
     }
 
+    @Override
     public AbortResult abortExecution(String id) throws IOException {
         Call<AbortResult> rundeckOutputCall = client.getService().abortExecution(id);
         Response<AbortResult> abortResultResponse = rundeckOutputCall.execute();
         return abortResultResponse.body();
     }
 
+    @Override
     public ExecOutput getOutput(Long executionId, Long var2, Integer var3, Integer var4) throws IOException {
         return this.getOutput(executionId.toString(), var2,(long)var3,(long)var4);
     }
 
+    @Override
     public ExecOutput getOutput(String executionId, Long var2, Long var3, Long var4) throws IOException {
         Call<ExecOutput> rundeckOutputCall = client.getService().getOutput(executionId, var2, var3, var4);
         Response<ExecOutput> execOutputResponse = rundeckOutputCall.execute();
@@ -98,6 +106,7 @@ public class RundeckClientManager {
 
     }
 
+    @Override
     public Execution getExecution(String id) throws IOException {
         Call<Execution> callExecutions = client.getService().getExecution(id);
         Response<Execution> executionResponse = callExecutions.execute();
@@ -109,6 +118,7 @@ public class RundeckClientManager {
         return null;
     }
 
+    @Override
     public String findJobId(String project, String name, String groupPath) throws IOException {
         JobItem job = findJob(project, name, groupPath);
 
@@ -118,6 +128,7 @@ public class RundeckClientManager {
         return null;
     }
 
+    @Override
     public JobItem findJob(String project, String name, String groupPath) throws IOException {
         Call<List<JobItem>> listCall =  client.getService().listJobs(project, name, groupPath,"","");
         Response<List<JobItem>> execute = listCall.execute();
@@ -139,23 +150,33 @@ public class RundeckClientManager {
         }
     }
 
+    @Override
     public JobItem getJob(String id) throws IOException {
         Call<ScheduledJobItem>  jobCall =  client.getService().getJobInfo(id);
         Response<ScheduledJobItem> scheduledJobItemResponse = jobCall.execute();
         return scheduledJobItemResponse.body();
     }
 
-    public Response<Execution> runExecution(String jobId, String options, String nodeFilters) throws IOException {
+    @Override
+    public Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
         Map<String, String> inputOptions = new HashMap<>();
+
+        for (final String name: options.stringPropertyNames()){
+            inputOptions.put(name, options.getProperty(name));
+        }
+
+        String nodeFilterValues = RundeckClientUtil.parseNodeFilters(nodeFilters);
+
         JobRun jobRun = new JobRun();
         jobRun.setOptions(inputOptions);
-        jobRun.setFilter(nodeFilters);
+        jobRun.setFilter(nodeFilterValues);
         Call<Execution> callExecutions = client.getService().runJob(jobId, jobRun);
 
         return callExecutions.execute();
 
     }
 
+    @Override
     public boolean ping() throws IOException {
         Response<ResponseBody> result = client.getService().getPing().execute();
         if(result.isSuccessful()){
@@ -164,6 +185,7 @@ public class RundeckClientManager {
         return false;
     }
 
+    @Override
     public boolean testAuth() throws IOException {
         Response<SystemInfo> result = client.getService().systemInfo().execute();
         if(result.isSuccessful()){
