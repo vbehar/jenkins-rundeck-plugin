@@ -1,12 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
-import com.cloudbees.plugins.credentials.CredentialsDescriptor;
 import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
-import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
-import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.FilePath;
 import hudson.model.*;
 import hudson.model.Cause.UpstreamCause;
@@ -17,29 +12,20 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.Properties;
 
 import hudson.util.Secret;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.time.DateUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckExecutionBuildBadgeAction;
-import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonHomeLoader.CopyExisting;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.MockBuilder;
 import org.rundeck.api.*;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckExecution.ExecutionStatus;
-import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.client.api.model.Execution;
 import org.tmatesoft.svn.core.SVNDepth;
-import org.tmatesoft.svn.core.SVNErrorMessage;
-import org.tmatesoft.svn.core.SVNURL;
 import org.tmatesoft.svn.core.auth.ISVNAuthenticationProvider;
-import org.tmatesoft.svn.core.auth.SVNAuthentication;
-import org.tmatesoft.svn.core.internal.wc.DefaultSVNAuthenticationManager;
 import org.tmatesoft.svn.core.wc.SVNClientManager;
 import retrofit2.Response;
 
@@ -53,7 +39,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testCommitWithoutTag() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager();
+        RundeckManager client = new MockRundeckClientManager();
         RundeckInstanceBuilder instanceBuilder = new RundeckInstanceBuilder();
         instanceBuilder.setClient(client);
 
@@ -109,7 +95,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testDeployCommitWithTagWontBreakTheBuild() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager();
+        RundeckManager client = new MockRundeckClientManager();
         RundeckInstanceBuilder instanceBuilder = new RundeckInstanceBuilder();
         instanceBuilder.setClient(client);
 
@@ -142,11 +128,11 @@ public class RundeckNotifierTest extends HudsonTestCase {
     public void testDeployCommitWithTagWillBreakTheBuild() throws Exception {
 
 
-        RundeckClientManager client = new MockRundeckClientManager() {
+        RundeckManager client = new MockRundeckClientManager() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
+            public Execution runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
                 throw new IOException("Fake error for testing");
             }
 
@@ -186,11 +172,11 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testExpandEnvVarsInOptions() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager() {
+        RundeckManager client = new MockRundeckClientManager() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
+            public Execution runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
                 Assert.assertEquals(4, options.size());
                 Assert.assertEquals("value 1", options.getProperty("option1"));
                 Assert.assertEquals("1", options.getProperty("buildNumber"));
@@ -224,11 +210,11 @@ public class RundeckNotifierTest extends HudsonTestCase {
     }
     public void testMultivalueOptions() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager() {
+        RundeckManager client = new MockRundeckClientManager() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
+            public Execution runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
                 Assert.assertEquals(2, options.size());
                 Assert.assertEquals("value 1", options.getProperty("option1"));
                 Assert.assertEquals("nodename1,nodename2", options.getProperty("nodes"));
@@ -262,7 +248,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testUpstreamBuildWithTag() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager();
+        RundeckManager client = new MockRundeckClientManager();
         RundeckInstanceBuilder instanceBuilder = new RundeckInstanceBuilder();
         instanceBuilder.setClient(client);
 
@@ -327,7 +313,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
     public void testWaitForRundeckJob() throws Exception {
 
-        RundeckClientManager client = new MockRundeckClientManager();
+        RundeckManager client = new MockRundeckClientManager();
         RundeckInstanceBuilder instanceBuilder = new RundeckInstanceBuilder();
         instanceBuilder.setClient(client);
 
@@ -445,7 +431,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         String login = "myUser";
         String password = "myPassword";
 
-        RundeckClientManager client = new MockRundeckClientManager(login, password);
+        RundeckManager client = new MockRundeckClientManager(login, password);
 
         RundeckInstanceBuilder instanceBuilder = new RundeckInstanceBuilder();
         instanceBuilder.setClient(client);

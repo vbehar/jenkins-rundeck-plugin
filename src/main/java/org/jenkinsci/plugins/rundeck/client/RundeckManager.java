@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck.client;
 
+import org.jenkinsci.plugins.rundeck.RundeckInstance;
 import org.rundeck.client.api.model.AbortResult;
 import org.rundeck.client.api.model.ExecOutput;
 import org.rundeck.client.api.model.Execution;
@@ -24,9 +25,11 @@ public interface RundeckManager {
 
     JobItem getJob(String id) throws IOException;
 
-    Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException;
+    Execution runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException;
 
     boolean ping() throws IOException;
 
     boolean testAuth() throws IOException;
+
+    RundeckInstance getRundeckInstance();
 }

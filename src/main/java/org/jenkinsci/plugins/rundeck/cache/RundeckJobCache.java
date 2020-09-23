@@ -1,6 +1,6 @@
 package org.jenkinsci.plugins.rundeck.cache;
 
-import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.rundeck.client.api.model.JobItem;
 
 /**
@@ -11,7 +11,7 @@ import org.rundeck.client.api.model.JobItem;
  */
 public interface RundeckJobCache {
 
-    JobItem findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClientManager rundeckInstance);
+    JobItem findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckManager rundeckInstance);
 
     String logAndGetStats();
 

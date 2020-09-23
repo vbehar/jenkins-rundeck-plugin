@@ -4,6 +4,7 @@ import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.rundeck.RundeckNotifier;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.rundeck.client.api.model.JobItem;
 
 /**
@@ -17,7 +18,7 @@ public class DummyRundeckJobCache implements RundeckJobCache {
     private static final Logger log = Logger.getLogger(DummyRundeckJobCache.class.getName());
 
     @Override
-    public JobItem findJobById(String rundeckJobId, String rundeckInstanceName, RundeckClientManager rundeckInstance) {
+    public JobItem findJobById(String rundeckJobId, String rundeckInstanceName, RundeckManager rundeckInstance) {
         return RundeckNotifier.RundeckDescriptor.findJobUncached(rundeckJobId, rundeckInstance);
     }
 

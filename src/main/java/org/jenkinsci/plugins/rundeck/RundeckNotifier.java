@@ -24,11 +24,13 @@ import org.jenkinsci.plugins.rundeck.cache.RundeckJobCache;
 import org.jenkinsci.plugins.rundeck.cache.RundeckJobCacheConfig;
 import org.jenkinsci.plugins.rundeck.client.ExecutionData;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.rundeck.api.RundeckClient;
 import org.rundeck.client.api.RundeckApi;
 import org.rundeck.client.api.model.*;
 import org.rundeck.client.util.Client;
@@ -142,11 +144,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return;
         }
 
-        RundeckClientManager rundeckClientManager = getDescriptor().getRundeckJobInstance(this.rundeckInstance, this.jobUser, this.getPassword(), this.getToken());
-        rundeckClientManager.buildClient();
-        Client<RundeckApi> rundeck = rundeckClientManager.getClient();
+        RundeckManager rundeckClientManager = getDescriptor().getRundeckJobInstance(this.rundeckInstance, this.jobUser, this.getPassword(), this.getToken());
 
-        if (rundeck == null) {
+        if (rundeckClientManager == null) {
             listener.getLogger().println("Rundeck configuration is not valid !");
             throw new AbortException("Rundeck configuration is not valid !");
         }
@@ -238,7 +238,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
      * @param listener for logging the result
      * @return true if successful, false otherwise
      */
-    private void notifyRundeck(RundeckClientManager rundeckClientManager, Run<?, ?> build, TaskListener listener) throws AbortException {
+    private void notifyRundeck(RundeckManager rundeckClientManager, Run<?, ?> build, TaskListener listener) throws AbortException {
         String runtimeJobId;
         // perform environment substitution before finding the rundeck job
         try {
@@ -267,21 +267,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             Properties optionProperties = parseProperties(options, build, listener);
             Properties nodeFiltersProperties = parseProperties(nodeFilters, build, listener);
 
-            Response<Execution> executionResponse = rundeckClientManager.runExecution(foundJobId, optionProperties, nodeFiltersProperties);
-
-            if(!executionResponse.isSuccessful()){
-                throw new AbortException("Error running the jon : " + executionResponse.message());
-            }
-
-            Execution execution = executionResponse.body();
-            /*
-            RundeckExecution execution = rundeck.triggerJob(RunJobBuilder.builder()
-                    .setJobId(foundJobId)
-                    .setOptions(parseProperties(options, build, listener))
-                    .setNodeFilters(parseProperties(nodeFilters, build, listener))
-                    .build());
-
-             */
+            Execution execution = rundeckClientManager.runExecution(foundJobId, optionProperties, nodeFiltersProperties);
 
             listener.getLogger().printf("Notification succeeded ! Execution #%s, at %s (status : %s)%n",
                     execution.getId(), execution.getPermalink(), execution.getStatus());
@@ -322,7 +308,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
     }
 
-    private Execution waitTailingRundeckLogsAndReturnExecution(RundeckClientManager rundeckClientManager, TaskListener listener, Execution execution) throws IOException {
+    private Execution waitTailingRundeckLogsAndReturnExecution(RundeckManager rundeckClientManager, TaskListener listener, Execution execution) throws IOException {
         listener.getLogger().println("BEGIN RUNDECK TAILED LOG OUTPUT");
         RunDeckLogTail runDeckLogTail = new RunDeckLogTail(rundeckClientManager, Long.valueOf(execution.getId()));
         PrintStream printStream = listener.getLogger();
@@ -398,7 +384,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
     }
 
-    private Execution waitForRundeckExecutionToFinishAndReturnIt(RundeckClientManager rundeckClientManager, TaskListener listener,
+    private Execution waitForRundeckExecutionToFinishAndReturnIt(RundeckManager rundeckClientManager, TaskListener listener,
                                                                  Execution execution) throws IOException {
         try {
             while (RundeckClientManager.ExecutionStatus.RUNNING.toString().equals(execution.getStatus())) {
@@ -417,7 +403,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         return execution;
     }
 
-    private void getAndPrintRundeckLogsForExecution(RundeckClientManager rundeckClientManager, TaskListener listener, String executionId) throws IOException {
+    private void getAndPrintRundeckLogsForExecution(RundeckManager rundeckClientManager, TaskListener listener, String executionId) throws IOException {
         listener.getLogger().println("BEGIN RUNDECK LOG OUTPUT");
 
         ExecOutput rundeckOutput = rundeckClientManager.getOutput(executionId, 0L, 0L, 0L);
@@ -556,7 +542,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
 
         @Deprecated
-        private transient RundeckClientManager rundeckInstance;
+        private transient RundeckClient rundeckInstance;
 
         @CopyOnWrite
         private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();
@@ -805,7 +791,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 return FormValidation.error("There are no rundeck instances configured. !");
             }
 
-            RundeckClientManager client = null;
+            RundeckManager client = null;
 
 
             try {
@@ -862,7 +848,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @return a job UUID
          * @throws IOException
          */
-        static String findJobId(String jobIdentifier, RundeckClientManager rundeckClient) throws IOException,
+        static String findJobId(String jobIdentifier, RundeckManager rundeckClient) throws IOException,
                 IllegalArgumentException {
             log.fine(format("findJobId request for jobId: %s", jobIdentifier));
             //TODO: Could be rewritten to be cache as well, if needed
@@ -887,12 +873,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @return the {@link JobItem} found, or null if not found
          * @throws Exception in case of error, or if no job with this ID
          */
-        public static JobItem findJob(String jobIdentifier, String rundeckInstanceName, RundeckClientManager rundeckInstance) {
+        public static JobItem findJob(String jobIdentifier, String rundeckInstanceName, RundeckManager rundeckInstance) {
             RundeckJobCache rundeckJobCache = getRundeckDescriptor().rundeckJobCache;
             return rundeckJobCache.findJobById(jobIdentifier, rundeckInstanceName, rundeckInstance);
         }
 
-        public static JobItem findJobUncached(String jobIdentifier, RundeckClientManager rundeckClient) {
+        public static JobItem findJobUncached(String jobIdentifier, RundeckManager rundeckClient) {
             RundeckJobCacheConfig rundeckJobCacheConfig = getRundeckDescriptor().getRundeckJobCacheConfig();
             if (rundeckJobCacheConfig.isEnabled()) {
                 log.info(format("NOT CACHED findJobUncached request for jobId: %s", jobIdentifier));
@@ -945,7 +931,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
              * @param jobToken
              * @return
              */
-        public RundeckClientManager getRundeckJobInstance(String rundeckInstanceName,
+        public RundeckManager getRundeckJobInstance(String rundeckInstanceName,
                                                    String jobUser, String jobPassword, String jobToken) {
 
 
@@ -955,7 +941,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 return null;
             }
 
-            RundeckClientManager client;
+            RundeckManager client;
             if(rundeckBuilder==null) {
                 rundeckBuilder = new RundeckInstanceBuilder();
             }

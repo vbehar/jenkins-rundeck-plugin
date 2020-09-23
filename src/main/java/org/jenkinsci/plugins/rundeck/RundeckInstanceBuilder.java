@@ -2,6 +2,11 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
+import org.rundeck.api.RundeckClient;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 public class RundeckInstanceBuilder {
     private String url;
@@ -9,20 +14,20 @@ public class RundeckInstanceBuilder {
     private String login;
     private Secret token;
     private Secret password;
-    RundeckClientManager client;
+    RundeckManager client;
 
     public RundeckInstanceBuilder() {
     }
 
-    void setClient(RundeckClientManager client){
+    void setClient(RundeckManager client){
         this.client = client;
     }
 
-    RundeckClientManager getClient(){
+    RundeckManager getClient(){
         return client;
     }
 
-    RundeckInstanceBuilder client(RundeckClientManager client){
+    RundeckInstanceBuilder client(RundeckManager client){
         this.url = client.getRundeckInstance().getUrl();
          if(client.getRundeckInstance().getPassword()!=null){
             this.password = client.getRundeckInstance().getPassword();
@@ -38,6 +43,25 @@ public class RundeckInstanceBuilder {
             this.apiVersion = RundeckClientManager.API_VERSION;
         }
 
+        return this;
+    }
+
+    RundeckInstanceBuilder client(org.rundeck.api.RundeckClient client){
+        this.url = client.getUrl();
+        if(client.getPassword()!=null){
+            this.password = Secret.fromString(client.getPassword());
+        }
+        if(client.getToken()!=null){
+            this.token = Secret.fromString(client.getToken());
+        }
+        this.login = client.getLogin();
+
+        String apiVersionLoaded = this.getApiVersion(client);
+        if(apiVersionLoaded!=null && !apiVersionLoaded.isEmpty()){
+            this.apiVersion = Integer.valueOf(apiVersionLoaded);
+        }else{
+            this.apiVersion = RundeckClient.API_VERSION;
+        }
         return this;
     }
 
@@ -79,7 +103,6 @@ public class RundeckInstanceBuilder {
         return clientManager;
     }
 
-    /*
     public String getApiVersion(RundeckClient instance) {
         if (instance != null) {
             try {
@@ -94,8 +117,6 @@ public class RundeckInstanceBuilder {
 
         return "";
     }
-
-     */
 
     @Override
     public String toString() {

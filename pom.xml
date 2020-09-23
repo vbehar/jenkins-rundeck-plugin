@@ -186,6 +186,9 @@
         </dependency>
 
 
+
+
+
     </dependencies>
 
 
@@ -207,7 +210,7 @@
                 <artifactId>maven-hpi-plugin</artifactId>
                 <extensions>true</extensions>
                 <configuration>
-                    <compatibleSinceVersion>2.0</compatibleSinceVersion>
+                    <compatibleSinceVersion>1.0</compatibleSinceVersion>
                     <minimumJavaVersion/>
                 </configuration>
             </plugin>

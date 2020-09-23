@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck.client;
 
+import hudson.AbortException;
 import okhttp3.ResponseBody;
 import org.jenkinsci.plugins.rundeck.RundeckInstance;
 import org.rundeck.client.RundeckClient;
@@ -158,7 +159,7 @@ public class RundeckClientManager implements RundeckManager {
     }
 
     @Override
-    public Response<Execution> runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
+    public Execution runExecution(String jobId, Properties options, Properties nodeFilters) throws IOException {
         Map<String, String> inputOptions = new HashMap<>();
 
         for (final String name: options.stringPropertyNames()){
@@ -171,8 +172,14 @@ public class RundeckClientManager implements RundeckManager {
         jobRun.setOptions(inputOptions);
         jobRun.setFilter(nodeFilterValues);
         Call<Execution> callExecutions = client.getService().runJob(jobId, jobRun);
+        Response<Execution> executionResponse = callExecutions.execute();
 
-        return callExecutions.execute();
+        if(!executionResponse.isSuccessful()){
+            throw new AbortException("Error running the jon : " + executionResponse.message());
+        }
+
+        Execution execution = executionResponse.body();
+        return execution;
 
     }
 

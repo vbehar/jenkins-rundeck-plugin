@@ -54,7 +54,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         assertFalse(oldStoredConfig.equals(storedConfig));
 
-        Secret password = Secret.fromString("password");
+        Secret password = descriptor.getRundeckInstance("Default").getPassword();
 
         final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
@@ -108,7 +108,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <string>first</string>\n" +
                 "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "        <url>http://first</url>\n" +
-                "        <apiVersion>21</apiVersion>\n" +
+                "        <apiVersion>32</apiVersion>\n" +
                 "        <login>login</login>\n" +
                 "        <password>"+password.getEncryptedValue()+"</password>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
@@ -121,7 +121,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <string>second</string>\n" +
                 "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "        <url>http://second</url>\n" +
-                "        <apiVersion>21</apiVersion>\n" +
+                "        <apiVersion>32</apiVersion>\n" +
                 "        <token>"+token.getEncryptedValue()+"</token>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
                 "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +

@@ -19,6 +19,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.rundeck.client.api.model.JobItem;
 
 /**
@@ -61,7 +62,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
                 .build();
     }
 
-    public JobItem findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClientManager rundeckInstance) {
+    public JobItem findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckManager rundeckInstance) {
         try {
             log.fine(format("Cached findJob request for jobId: %s (%s)", rundeckJobId, rundeckInstanceName));
             return findByJobIdInCacheOrAskServer(rundeckJobId, rundeckInstanceName, rundeckInstance);
@@ -97,7 +98,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private JobItem findByJobIdInCacheOrAskServer(final String rundeckJobId, String rundeckInstanceName,
-                                                  final RundeckClientManager rundeckInstance) throws ExecutionException {
+                                                  final RundeckManager rundeckInstance) throws ExecutionException {
         Cache<String, JobItem> rundeckJobCache = rundeckJobInstanceAwareCache.get(rundeckInstanceName);
 
         JobItem tmp = rundeckJobCache.get(rundeckJobId, new Callable<JobItem>() {

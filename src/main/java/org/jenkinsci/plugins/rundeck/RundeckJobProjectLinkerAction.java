@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.rundeck;
 import hudson.model.Action;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.kohsuke.stapler.export.Exported;
 import org.rundeck.client.api.model.JobItem;
 
@@ -16,7 +17,7 @@ public class RundeckJobProjectLinkerAction implements Action {
 
     private final String rundeckInstanceName;
 
-    private final RundeckClientManager rundeck;
+    private final RundeckManager rundeck;
 
     private final JobItem rundeckJob;
 
@@ -31,7 +32,7 @@ public class RundeckJobProjectLinkerAction implements Action {
      * @throws Exception in case of error while loading the job details from Rundeck API
      * @throws IllegalArgumentException if rundeck or rundeckJobId is null
      */
-    public RundeckJobProjectLinkerAction(String rundeckInstanceName, RundeckClientManager rundeck, String rundeckJobId) throws Exception,
+    public RundeckJobProjectLinkerAction(String rundeckInstanceName, RundeckManager rundeck, String rundeckJobId) throws Exception,
             IllegalArgumentException {
         if (rundeck == null) {
             throw new IllegalArgumentException("rundeckClient should not be null !");
