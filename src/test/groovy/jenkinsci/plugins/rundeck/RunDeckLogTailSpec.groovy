@@ -7,6 +7,7 @@ import org.rundeck.client.api.model.ExecOutput
 import spock.lang.Specification
 import spock.lang.Unroll
 
+
 class RunDeckLogTailSpec extends Specification {
 
     @Unroll
