@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.rundeck;
 
-import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.rundeck.client.api.model.ExecLog;
 import org.rundeck.client.api.model.ExecOutput;

@@ -12,7 +12,6 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckDescriptor;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.rundeck.api.RundeckClient;
 
 /**
  * Test the backward compatibility of {@link RundeckNotifier}

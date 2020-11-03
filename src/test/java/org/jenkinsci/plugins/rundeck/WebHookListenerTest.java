@@ -23,7 +23,7 @@ public class WebHookListenerTest {
     @Rule public JenkinsRule jenkins = new JenkinsRule();
 
     @Test
-    public void testInvalidEntities() throws IOException {
+    public void testInvalidEntities(){
 
         WebHookListener listener = new WebHookListener();
 
@@ -33,7 +33,7 @@ public class WebHookListenerTest {
                 "%remote;\n" +
                 "%all;\n" +
                 "]>\n" +
-                "<root>&send;</root>";
+                "{}";
 
         InputStream data = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
         final ServletInputStream servletInputStream=new DelegatingServletInputStream(data);
@@ -61,33 +61,10 @@ public class WebHookListenerTest {
     }
 
     @Test
-    public void testValidData() throws IOException {
+    public void testValidData() {
 
         WebHookListener listener = new WebHookListener();
-
-        final String payload = "<notification trigger='success' status='success' executionId='37'>\n" +
-                "\n" +
-                "<executions count='1'>\n" +
-                "  <execution id='176300' href='http://rundeck/api/34/execution/176300' permalink='http://rundeck/project/Support/execution/show/176300' status='succeeded' project='Support'>\n" +
-                "    <user>admin</user>\n" +
-                "    <date-started unixtime='1581081053000'>2020-02-07T13:10:53Z</date-started>\n" +
-                "    <date-ended unixtime='1581081054000'>2020-02-07T13:10:54Z</date-ended>\n" +
-                "    <job id='6fa68fe1-6894-477c-a997-ba1004b4ae83' averageDuration='1326' href='http://rundeck/api/34/job/6fa68fe1-6894-477c-a997-ba1004b4ae83' permalink='http://rundeck/project/Support/job/show/6fa68fe1-6894-477c-a997-ba1004b4ae83'>\n" +
-                "      <name>jenkins-notification</name>\n" +
-                "      <group></group>\n" +
-                "      <project>Support</project>\n" +
-                "      <description></description>\n" +
-                "    </job>\n" +
-                "    <description>ls -lrt</description>\n" +
-                "    <argstring />\n" +
-                "    <serverUUID>5c9e3bd4-50ed-4563-9dbd-f3f331326579</serverUUID>\n" +
-                "    <successfulNodes>\n" +
-                "      <node name='localhost' />\n" +
-                "    </successfulNodes>\n" +
-                "  </execution>\n" +
-                "</executions>\n" +
-                "\n" +
-                "</notification>";
+        final String payload = "{executionId: 123, status: 'success',  jobId: '6fa68fe1-6894-477c-a997-ba1004b4ae83', jobName: 'Demo', jobGroup: 'Test', project: 'Jenkins', permalink: 'http://rundeck/execution/123' }";
 
         InputStream data = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
         final ServletInputStream servletInputStream=new DelegatingServletInputStream(data);

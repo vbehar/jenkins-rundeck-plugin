@@ -1,17 +1,18 @@
 package org.jenkinsci.plugins.rundeck;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.IOUtils;
-import org.dom4j.Document;
-import org.jenkinsci.plugins.rundeck.util.ParserXML;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.parser.ExecutionParser;
+import org.rundeck.client.api.model.Execution;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * Listener for Rundeck WebHook notifications (see http://rundeck.org/docs/manual/jobs.html#webhooks), will trigger a
@@ -22,17 +23,36 @@ import org.rundeck.api.parser.ExecutionParser;
 public class WebHookListener {
 
     @RequirePOST
-    public void doIndex(StaplerRequest request, StaplerResponse response) throws IOException {
+    public void doIndex(StaplerRequest request, StaplerResponse response) {
 
         // read request body / parse Rundeck execution
-        Document document = null;
-
         try{
-            document = ParserXML.loadDocument(request.getInputStream());
 
-            IOUtils.closeQuietly(request.getInputStream());
-            ExecutionParser parser = new ExecutionParser("notification/executions/execution");
-            RundeckExecution execution = parser.parseXmlNode(document);
+            Gson gson = new Gson();
+
+            Reader reader = new InputStreamReader(request.getInputStream(), "UTF-8");
+            JsonObject json = gson.fromJson(reader, JsonObject.class);
+
+            String executionId = json.get("executionId").getAsString();
+            String status = json.get("status").getAsString();
+            String jobId = json.get("jobId").getAsString();
+            String jobName = json.get("jobName").getAsString();
+            String jobGroup = json.get("jobGroup").getAsString();
+            String project = json.get("project").getAsString();
+            String permalink = json.get("permalink").getAsString();
+
+            Execution execution = new Execution();
+            JobItem jobItem = new JobItem();
+            jobItem.setId(jobId);
+            jobItem.setName(jobName);
+            jobItem.setGroup(jobGroup);
+            jobItem.setProject(project);
+
+            execution.setId(executionId);
+            execution.setStatus(status);
+            execution.setJob(jobItem);
+            execution.setProject(project);
+            execution.setPermalink(permalink);
 
             // write a basic response
             response.setStatus(HttpServletResponse.SC_OK);
@@ -43,14 +63,19 @@ public class WebHookListener {
                 RundeckTrigger trigger = job.getTrigger(RundeckTrigger.class);
                 if (trigger != null) {
                     response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
-                    response.getWriter().append("\"Execution\" : \"" + execution.getJob()+"\"]\n");
+                    response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
                     trigger.onNotification(execution);
                 }
             }
         }catch (Exception e){
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.setContentType("text/plain");
-            response.getWriter().append(e.getMessage());
+            try {
+                response.getWriter().append(e.getMessage());
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+
         }
 
     }

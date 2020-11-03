@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.model.Action;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 import org.kohsuke.stapler.export.Exported;
 import org.rundeck.client.api.model.JobItem;

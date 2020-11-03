@@ -3,10 +3,6 @@ package org.jenkinsci.plugins.rundeck;
 import hudson.util.Secret;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.jenkinsci.plugins.rundeck.client.RundeckManager;
-import org.rundeck.api.RundeckClient;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 
 public class RundeckInstanceBuilder {
     private String url;
@@ -46,22 +42,16 @@ public class RundeckInstanceBuilder {
         return this;
     }
 
-    RundeckInstanceBuilder client(org.rundeck.api.RundeckClient client){
+    RundeckInstanceBuilder client(RundeckInstance client){
         this.url = client.getUrl();
         if(client.getPassword()!=null){
-            this.password = Secret.fromString(client.getPassword());
+            this.password = client.getPassword();
         }
         if(client.getToken()!=null){
-            this.token = Secret.fromString(client.getToken());
+            this.token = client.getToken();
         }
         this.login = client.getLogin();
-
-        String apiVersionLoaded = this.getApiVersion(client);
-        if(apiVersionLoaded!=null && !apiVersionLoaded.isEmpty()){
-            this.apiVersion = Integer.parseInt(apiVersionLoaded);
-        }else{
-            this.apiVersion = RundeckClient.API_VERSION;
-        }
+        this.apiVersion = client.getApiVersion();
         return this;
     }
 
@@ -101,21 +91,6 @@ public class RundeckInstanceBuilder {
     static RundeckClientManager createClient(RundeckInstance instance){
         RundeckClientManager clientManager = new RundeckClientManager(instance);
         return clientManager;
-    }
-
-    public String getApiVersion(RundeckClient instance) {
-        if (instance != null) {
-            try {
-                Method method = instance.getClass().getDeclaredMethod("getApiVersion");
-                method.setAccessible(true);
-
-                return method.invoke(instance).toString();
-            } catch (SecurityException | NoSuchMethodException | IllegalArgumentException | InvocationTargetException | IllegalAccessException e) {
-                return "";
-            }
-        }
-
-        return "";
     }
 
     @Override

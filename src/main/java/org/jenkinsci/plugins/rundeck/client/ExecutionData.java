@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.rundeck.client;
 
 import org.apache.commons.lang.time.DurationFormatUtils;
-import org.rundeck.client.api.model.DateInfo;
 import org.rundeck.client.api.model.Execution;
 
 import java.util.concurrent.TimeUnit;

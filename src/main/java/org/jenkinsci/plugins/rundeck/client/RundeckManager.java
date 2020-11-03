@@ -5,7 +5,6 @@ import org.rundeck.client.api.model.AbortResult;
 import org.rundeck.client.api.model.ExecOutput;
 import org.rundeck.client.api.model.Execution;
 import org.rundeck.client.api.model.JobItem;
-import retrofit2.Response;
 
 import java.io.IOException;
 import java.util.Properties;

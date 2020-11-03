@@ -30,11 +30,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.client.api.RundeckApi;
 import org.rundeck.client.api.model.*;
-import org.rundeck.client.util.Client;
-import retrofit2.Response;
 
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -542,7 +538,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     public static final class RundeckDescriptor extends BuildStepDescriptor<Publisher> {
 
         @Deprecated
-        private transient RundeckClient rundeckInstance;
+        private transient RundeckInstance rundeckInstance;
 
         @CopyOnWrite
         private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();

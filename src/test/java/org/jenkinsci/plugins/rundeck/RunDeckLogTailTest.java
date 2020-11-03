@@ -1,15 +1,9 @@
 package org.jenkinsci.plugins.rundeck;
 
-import mockit.Expectations;
 import mockit.Mocked;
-import mockit.NonStrictExpectations;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.junit.Before;
 import org.junit.Test;
-import org.rundeck.api.RundeckApiException;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.api.domain.RundeckOutput;
-import org.rundeck.api.domain.RundeckOutputEntry;
 import org.rundeck.client.api.model.ExecLog;
 import org.rundeck.client.api.model.ExecOutput;
 

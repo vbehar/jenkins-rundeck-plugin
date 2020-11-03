@@ -1,18 +1,16 @@
 package org.rundeck.api;
 
-import org.apache.commons.lang.time.DateUtils;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckJob;
 
 import java.util.Date;
 
 /**
  * Just a mock {@link RundeckClient} which is always successful
  */
-public class MockRundeckClient extends RundeckClient {
+public class MockRundeckClient { //extends RundeckClient {
 
     private static final long serialVersionUID = 1L;
 
+    /*
     public MockRundeckClient() {
         super("http://localhost:4440");
         setLogin("admin");
@@ -64,5 +62,6 @@ public class MockRundeckClient extends RundeckClient {
         }
         return execution;
     }
+    */
 
 }

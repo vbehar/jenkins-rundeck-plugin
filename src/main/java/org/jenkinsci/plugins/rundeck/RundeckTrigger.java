@@ -11,11 +11,8 @@ import java.util.List;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.jenkinsci.plugins.rundeck.client.ExecutionData;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckJob;
 import org.rundeck.client.api.model.Execution;
 import org.rundeck.client.api.model.JobItem;
 
@@ -44,7 +41,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      *
      * @param execution at the origin of the notification
      */
-    public void onNotification(RundeckExecution execution) {
+    public void onNotification(Execution execution) {
         if (shouldScheduleBuild(execution)) {
             if(job != null){
                 job.scheduleBuild(new RundeckCause(execution));
@@ -58,8 +55,8 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
-    private boolean shouldScheduleBuild(RundeckExecution execution) {
-        if (!executionStatuses.contains(execution.getStatus().toString())) {
+    private boolean shouldScheduleBuild(Execution execution) {
+        if (!executionStatuses.contains(execution.getStatus())) {
             return false;
         }
         if (!filterJobs) {
@@ -80,7 +77,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param job to test
      * @return true if it matches, false otherwise
      */
-    private boolean identifierMatchesJob(String jobIdentifier, RundeckJob job) {
+    private boolean identifierMatchesJob(String jobIdentifier, JobItem job) {
         if (job == null || StringUtils.isBlank(jobIdentifier)) {
             return false;
         }
@@ -90,8 +87,12 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
             return true;
         }
 
+        String fullname = job.getName();
+        if (job.getGroup() != null) {
+            fullname = job.getGroup()+"/"+job.getName();
+        }
         // "project:group/job" reference
-        String jobReference = job.getProject() + ":" + job.getFullName();
+        String jobReference = job.getProject() + ":" + fullname;
         if (StringUtils.equalsIgnoreCase(jobReference, jobIdentifier)) {
             return true;
         }
