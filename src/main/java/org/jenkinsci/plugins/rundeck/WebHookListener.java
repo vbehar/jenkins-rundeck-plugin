@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.rundeck;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import java.io.IOException;
@@ -67,7 +68,7 @@ public class WebHookListener {
                     trigger.onNotification(execution);
                 }
             }
-        }catch (Exception e){
+        }catch (JsonSyntaxException e){
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.setContentType("text/plain");
             try {
@@ -76,6 +77,8 @@ public class WebHookListener {
                 ioException.printStackTrace();
             }
 
+        }catch (Exception e){
+            throw new RuntimeException("Something failed!", e);
         }
 
     }
