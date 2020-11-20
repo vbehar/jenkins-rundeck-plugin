@@ -473,8 +473,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     }
 
     public String[] getTags() {
-        final String[] tags = this.tags;
-        return tags;
+        return Arrays.copyOf(tags, tags.length);
     }
 
     public Boolean getShouldWaitForRundeckJob() {

@@ -53,9 +53,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         assertFalse(oldStoredConfig.equals(storedConfig));
 
-        Secret password = descriptor.getRundeckInstance("Default").getPassword();
+        Secret password = Secret.fromString("password");
 
-        final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
+        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
                 "  <rundeckInstances class=\"linked-hash-map\">\n" +
                 "    <entry>\n" +
