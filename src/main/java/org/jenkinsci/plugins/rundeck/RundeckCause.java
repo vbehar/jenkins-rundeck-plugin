@@ -169,7 +169,7 @@ public class RundeckCause extends Cause {
         }
 
         public String getUrlName() {
-            return execution != null ? execution.getHref() : null;
+            return execution != null ? execution.getPermalink() : null;
         }
     }
 
