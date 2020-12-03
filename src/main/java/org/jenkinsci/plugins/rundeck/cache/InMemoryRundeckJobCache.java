@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.rundeck.cache;
 
 import static java.lang.String.format;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -10,9 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import org.jenkinsci.plugins.rundeck.RundeckNotifier;
-import org.rundeck.api.RundeckApiException;
-import org.rundeck.api.RundeckClient;
-import org.rundeck.api.domain.RundeckJob;
+import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
 import com.google.common.base.Throwables;
 import com.google.common.cache.Cache;
@@ -20,6 +19,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import org.jenkinsci.plugins.rundeck.client.RundeckManager;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * In-memory Rundeck job cache implementation based on Cache from Guava.
@@ -35,7 +36,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private final int cacheStatsDisplayHitThreshold;
 
-    private final LoadingCache<String, Cache<String, RundeckJob>> rundeckJobInstanceAwareCache;
+    private final LoadingCache<String, Cache<String, JobItem>> rundeckJobInstanceAwareCache;
 
     private long hitCounter = 0;
 
@@ -45,15 +46,15 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
         this.rundeckJobInstanceAwareCache = CacheBuilder.newBuilder()
                 .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
                 .build(
-                        new CacheLoader<String, Cache<String, RundeckJob>>() {
+                        new CacheLoader<String, Cache<String, JobItem>>() {
                             @Override
-                            public Cache<String, RundeckJob> load(String rundeckInstanceName) throws Exception {
+                            public Cache<String, JobItem> load(String rundeckInstanceName) throws Exception {
                                 return createJobCacheForRundeckInstance(rundeckInstanceName, rundeckJobCacheConfig);
                             }
                         });
     }
 
-    private Cache<String, RundeckJob> createJobCacheForRundeckInstance(String rundeckInstanceName, RundeckJobCacheConfig rundeckJobCacheConfig) {
+    private Cache<String, JobItem> createJobCacheForRundeckInstance(String rundeckInstanceName, RundeckJobCacheConfig rundeckJobCacheConfig) {
         log.info(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
         return CacheBuilder.newBuilder()
                 .expireAfterAccess(rundeckJobCacheConfig.getAfterAccessExpirationInMinutes(), TimeUnit.MINUTES)
@@ -61,11 +62,11 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
                 .build();
     }
 
-    public RundeckJob findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckClient rundeckInstance) {
+    public JobItem findJobById(final String rundeckJobId, final String rundeckInstanceName, final RundeckManager rundeckInstance) {
         try {
             log.fine(format("Cached findJob request for jobId: %s (%s)", rundeckJobId, rundeckInstanceName));
             return findByJobIdInCacheOrAskServer(rundeckJobId, rundeckInstanceName, rundeckInstance);
-        } catch (UncheckedExecutionException | ExecutionException e) {
+        } catch (ExecutionException e) {
             throw rethrowUnwrappingRundeckApiExceptionIfPossible(e);
         }
     }
@@ -80,7 +81,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
         if (rundeckJobInstanceAwareCache.size() == 0) {
             sb.append("Cache is empty");
         } else {
-            for(Map.Entry<String, Cache<String, RundeckJob>> instanceCacheEntries: rundeckJobInstanceAwareCache.asMap().entrySet()) {
+            for(Map.Entry<String, Cache<String, JobItem>> instanceCacheEntries: rundeckJobInstanceAwareCache.asMap().entrySet()) {
                 logCacheStats(instanceCacheEntries.getKey(), instanceCacheEntries.getValue());
                 sb.append(format("%s: %s", instanceCacheEntries.getKey(), instanceCacheEntries.getValue().stats())).append("\n");
             }
@@ -96,12 +97,12 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
         rundeckJobInstanceAwareCache.invalidateAll();
     }
 
-    private RundeckJob findByJobIdInCacheOrAskServer(final String rundeckJobId, String rundeckInstanceName,
-                                                     final RundeckClient rundeckInstance) throws ExecutionException {
-        Cache<String, RundeckJob> rundeckJobCache = rundeckJobInstanceAwareCache.get(rundeckInstanceName);
+    private JobItem findByJobIdInCacheOrAskServer(final String rundeckJobId, String rundeckInstanceName,
+                                                  final RundeckManager rundeckInstance) throws ExecutionException {
+        Cache<String, JobItem> rundeckJobCache = rundeckJobInstanceAwareCache.get(rundeckInstanceName);
 
-        RundeckJob tmp = rundeckJobCache.get(rundeckJobId, new Callable<RundeckJob>() {
-            public RundeckJob call() throws Exception {
+        JobItem tmp = rundeckJobCache.get(rundeckJobId, new Callable<JobItem>() {
+            public JobItem call() throws Exception {
                 return RundeckNotifier.RundeckDescriptor.findJobUncached(rundeckJobId, rundeckInstance);
             }
         });
@@ -110,13 +111,13 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     }
 
     private RuntimeException rethrowUnwrappingRundeckApiExceptionIfPossible(Exception e) {
-        if (e.getCause() != null && e.getCause() instanceof RundeckApiException) {
-            throw new RundeckApiException(e.getMessage(), e);
+        if (e.getCause() != null && e.getCause() instanceof IOException) {
+            throw new RuntimeException(e.getMessage());
         }
         throw Throwables.propagate(e);
     }
 
-    private void logCacheStatsIfAppropriate(String instanceName, Cache<String, RundeckJob> jobCache) {
+    private void logCacheStatsIfAppropriate(String instanceName, Cache<String, JobItem> jobCache) {
         if (cacheStatsDisplayHitThreshold <= 0) {    //stats printing disabled
             return;
         }

@@ -23,7 +23,7 @@ import org.kohsuke.stapler.StaplerResponse;
 
 /**
  * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
- * 
+ *
  * @author Vincent Behar
  */
 public class OptionProvider {
@@ -63,7 +63,7 @@ public class OptionProvider {
         List<Option> options = new ArrayList<OptionProvider.Option>();
         for (Artifact artifact : build.getArtifacts()) {
             if (artifactPattern == null
-                || (artifactPattern != null && artifactPattern.matcher(artifact.getFileName()).matches())) {
+                || (artifactPattern.matcher(artifact.getFileName()).matches())) {
                 options.add(new Option(artifact.getFileName(), buildArtifactUrl(build, artifact)));
             }
         }
@@ -187,7 +187,7 @@ public class OptionProvider {
 
     /**
      * Find the Jenkins project matching the given name.
-     * 
+     *
      * @param projectName
      * @return an {@link Job} instance, or null if not found
      */
@@ -202,7 +202,7 @@ public class OptionProvider {
     /**
      * Find a build for the given project, using the provided buildNumber as a hint. If not found, will fallback to the
      * last build.
-     * 
+     *
      * @param buildNumber either a build number, or a reference ('lastStable', 'lastSuccessful', or 'last')
      * @param project
      * @return a {@link Run} instance representing the build, or null if we couldn't event find the last build.
@@ -238,7 +238,7 @@ public class OptionProvider {
     /**
      * Find an artifact of the given build, matching the artifactName (filename) or the artifactPattern (java-regex). If
      * not found, return null.
-     * 
+     *
      * @param artifactName exact filename of the artifact - may be null
      * @param artifactPattern to match against the artifact filename - may be null
      * @param build
@@ -263,7 +263,7 @@ public class OptionProvider {
 
     /**
      * Build the absolute url of the given artifact
-     * 
+     *
      * @param build
      * @param artifact
      * @return absolute url
@@ -278,7 +278,7 @@ public class OptionProvider {
     /**
      * Outputs the given list of options as a JSON. See format at
      * http://rundeck.org/docs/manual/job-options.html#option-model-provider
-     * 
+     *
      * @param options
      * @param response
      */

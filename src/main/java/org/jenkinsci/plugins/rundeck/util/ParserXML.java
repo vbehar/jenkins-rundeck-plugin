@@ -4,13 +4,12 @@ import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
-import org.rundeck.api.RundeckApiException;
 import org.xml.sax.SAXException;
 import java.io.InputStream;
 
 public class ParserXML {
 
-    public static Document loadDocument(InputStream inputStream) throws RundeckApiException {
+    public static Document loadDocument(InputStream inputStream) throws Exception {
 
         SAXReader reader = new SAXReader();
 
@@ -20,7 +19,7 @@ public class ParserXML {
             reader.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
 
         } catch (SAXException e) {
-            throw new RundeckApiException(e.getMessage());
+            throw new Exception(e.getMessage());
         }
 
         reader.setEncoding("UTF-8");
@@ -29,7 +28,7 @@ public class ParserXML {
         try {
             document = reader.read(inputStream);
         } catch (DocumentException ex) {
-            throw new RundeckApiException("Failed to read Rundeck response: " + ex.getMessage());
+            throw new Exception("Failed to read Rundeck response: " + ex.getMessage());
         }
 
         document.setXMLEncoding("UTF-8");
@@ -37,7 +36,7 @@ public class ParserXML {
         if (result != null) {
             Boolean failure = Boolean.valueOf(result.valueOf("@error"));
             if (failure) {
-                throw new RundeckApiException(result.valueOf("error/message"));
+                throw new Exception(result.valueOf("error/message"));
             }
         }
 

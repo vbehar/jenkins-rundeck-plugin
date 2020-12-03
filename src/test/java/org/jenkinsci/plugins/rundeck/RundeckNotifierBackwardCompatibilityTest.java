@@ -12,7 +12,6 @@ import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.rundeck.RundeckNotifier.RundeckDescriptor;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.rundeck.api.RundeckClient;
 
 /**
  * Test the backward compatibility of {@link RundeckNotifier}
@@ -54,9 +53,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         assertFalse(oldStoredConfig.equals(storedConfig));
 
-        Secret password = Secret.fromString("password");
+        Secret password = descriptor.getRundeckInstance("Default").getPassword();
 
-        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
                 "  <rundeckInstances class=\"linked-hash-map\">\n" +
                 "    <entry>\n" +
@@ -101,14 +100,14 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         String storedConfig = FileUtils.readFileToString(new File(this.jenkins.getRootDir(), descriptor.getId() + ".xml"));
 
-        final String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
                 "  <rundeckInstances class=\"linked-hash-map\">\n" +
                 "    <entry>\n" +
                 "      <string>first</string>\n" +
                 "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "        <url>http://first</url>\n" +
-                "        <apiVersion>21</apiVersion>\n" +
+                "        <apiVersion>32</apiVersion>\n" +
                 "        <login>login</login>\n" +
                 "        <password>"+password.getEncryptedValue()+"</password>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
@@ -121,7 +120,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <string>second</string>\n" +
                 "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "        <url>http://second</url>\n" +
-                "        <apiVersion>21</apiVersion>\n" +
+                "        <apiVersion>32</apiVersion>\n" +
                 "        <token>"+token.getEncryptedValue()+"</token>\n" +
                 "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
                 "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
@@ -163,7 +162,7 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         String storedConfig = FileUtils.readFileToString(job.getConfigFile().getFile());
 
-        String expected = "<?xml version='1.0' encoding='UTF-8'?>\n" +
+        String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<project>\n" +
                 "  <actions/>\n" +
                 "  <description></description>\n" +

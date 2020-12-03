@@ -1,12 +1,12 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
-import org.rundeck.api.RundeckClient;
+import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
 public class RundeckInstance {
 
     private String url;
-    private Integer apiVersion = RundeckClient.API_VERSION;
+    private Integer apiVersion = RundeckClientManager.API_VERSION;
     private String login;
     private Secret token;
     private Secret password;

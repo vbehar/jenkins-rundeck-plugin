@@ -3,7 +3,8 @@ package org.jenkinsci.plugins.rundeck;
 import hudson.EnvVars;
 import org.junit.Assert;
 import org.jvnet.hudson.test.HudsonTestCase;
-import org.rundeck.api.domain.RundeckExecution;
+import org.rundeck.client.api.model.DateInfo;
+import org.rundeck.client.api.model.Execution;
 
 import java.util.Date;
 
@@ -15,11 +16,11 @@ import java.util.Date;
 public class RundeckCauseTest extends HudsonTestCase {
 
     public void testBuildEnvVarsArgstring(){
-        RundeckExecution execution = new RundeckExecution();
-        execution.setId(1L);
-        execution.setUrl("http://localhost:4440/execution/follow/1");
-        execution.setStatus( RundeckExecution.ExecutionStatus.SUCCEEDED);
-        execution.setStartedAt(new Date(1310159014640L));
+        Execution execution = new Execution();
+        execution.setId("1");
+        execution.setHref("http://localhost:4440/execution/follow/1");
+        execution.setStatus( "success");
+        execution.setDateStarted(new DateInfo());
         execution.setArgstring("-simpleOption simpleValue -optionWithOneHyphen value-value -optionWithTwoHyphens value-value-value -optionWithTrailingHyphen value-value-");
 
         RundeckCause.RundeckExecutionEnvironmentContributingAction rundeckExecutionEnvironmentContributingAction

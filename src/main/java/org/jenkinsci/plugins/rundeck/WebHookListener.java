@@ -1,17 +1,19 @@
 package org.jenkinsci.plugins.rundeck;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.commons.io.IOUtils;
-import org.dom4j.Document;
-import org.jenkinsci.plugins.rundeck.util.ParserXML;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.parser.ExecutionParser;
+import org.rundeck.client.api.model.Execution;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * Listener for Rundeck WebHook notifications (see http://rundeck.org/docs/manual/jobs.html#webhooks), will trigger a
@@ -22,17 +24,15 @@ import org.rundeck.api.parser.ExecutionParser;
 public class WebHookListener {
 
     @RequirePOST
-    public void doIndex(StaplerRequest request, StaplerResponse response) throws IOException {
+    public void doIndex(StaplerRequest request, StaplerResponse response) {
 
         // read request body / parse Rundeck execution
-        Document document = null;
-
         try{
-            document = ParserXML.loadDocument(request.getInputStream());
 
-            IOUtils.closeQuietly(request.getInputStream());
-            ExecutionParser parser = new ExecutionParser("notification/executions/execution");
-            RundeckExecution execution = parser.parseXmlNode(document);
+            Gson gson = new Gson();
+
+            Reader reader = new InputStreamReader(request.getInputStream(), "UTF-8");
+            Execution execution = gson.fromJson(reader, Execution.class);
 
             // write a basic response
             response.setStatus(HttpServletResponse.SC_OK);
@@ -43,14 +43,21 @@ public class WebHookListener {
                 RundeckTrigger trigger = job.getTrigger(RundeckTrigger.class);
                 if (trigger != null) {
                     response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
-                    response.getWriter().append("\"Execution\" : \"" + execution.getJob()+"\"]\n");
+                    response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
                     trigger.onNotification(execution);
                 }
             }
-        }catch (Exception e){
+        }catch (JsonSyntaxException e){
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.setContentType("text/plain");
-            response.getWriter().append(e.getMessage());
+            try {
+                response.getWriter().append(e.getMessage());
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+
+        }catch (Exception e){
+            throw new RuntimeException("Something failed!", e);
         }
 
     }

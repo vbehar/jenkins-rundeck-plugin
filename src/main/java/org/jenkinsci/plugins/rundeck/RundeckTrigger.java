@@ -13,12 +13,12 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
-import org.rundeck.api.domain.RundeckExecution;
-import org.rundeck.api.domain.RundeckJob;
+import org.rundeck.client.api.model.Execution;
+import org.rundeck.client.api.model.JobItem;
 
 /**
  * Triggers a build when we receive a WebHook notification from Rundeck.
- * 
+ *
  * @author Vincent Behar
  */
 public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
@@ -38,23 +38,25 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     /**
      * Called when we receive a Rundeck notification
-     * 
+     *
      * @param execution at the origin of the notification
      */
-    public void onNotification(RundeckExecution execution) {
+    public void onNotification(Execution execution) {
         if (shouldScheduleBuild(execution)) {
-            job.scheduleBuild(new RundeckCause(execution));
+            if(job != null){
+                job.scheduleBuild(new RundeckCause(execution));
+            }
         }
     }
 
     /**
-     * Filter notifications based on the {@link RundeckExecution} and the trigger configuration
-     * 
+     * Filter notifications based on the {@link Execution} and the trigger configuration
+     *
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
-    private boolean shouldScheduleBuild(RundeckExecution execution) {
-        if (!executionStatuses.contains(execution.getStatus().toString())) {
+    private boolean shouldScheduleBuild(Execution execution) {
+        if (!executionStatuses.contains(execution.getStatus().toUpperCase())) {
             return false;
         }
         if (!filterJobs) {
@@ -70,12 +72,12 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     /**
      * Check if the given jobIdentifier matches (= identifies) the given job
-     * 
+     *
      * @param jobIdentifier could be either a job's UUID, or a reference to a job in the format "project:group/job"
      * @param job to test
      * @return true if it matches, false otherwise
      */
-    private boolean identifierMatchesJob(String jobIdentifier, RundeckJob job) {
+    private boolean identifierMatchesJob(String jobIdentifier, JobItem job) {
         if (job == null || StringUtils.isBlank(jobIdentifier)) {
             return false;
         }
@@ -85,8 +87,12 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
             return true;
         }
 
+        String fullname = job.getName();
+        if (job.getGroup() != null) {
+            fullname = job.getGroup()+"/"+job.getName();
+        }
         // "project:group/job" reference
-        String jobReference = job.getProject() + ":" + job.getFullName();
+        String jobReference = job.getProject() + ":" + fullname;
         if (StringUtils.equalsIgnoreCase(jobReference, jobIdentifier)) {
             return true;
         }
