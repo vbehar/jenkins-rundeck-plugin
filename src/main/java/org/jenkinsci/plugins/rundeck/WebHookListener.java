@@ -32,28 +32,7 @@ public class WebHookListener {
             Gson gson = new Gson();
 
             Reader reader = new InputStreamReader(request.getInputStream(), "UTF-8");
-            JsonObject json = gson.fromJson(reader, JsonObject.class);
-
-            String executionId = json.get("executionId").getAsString();
-            String status = json.get("status").getAsString();
-            String jobId = json.get("jobId").getAsString();
-            String jobName = json.get("jobName").getAsString();
-            String jobGroup = json.get("jobGroup").getAsString();
-            String project = json.get("project").getAsString();
-            String permalink = json.get("permalink").getAsString();
-
-            Execution execution = new Execution();
-            JobItem jobItem = new JobItem();
-            jobItem.setId(jobId);
-            jobItem.setName(jobName);
-            jobItem.setGroup(jobGroup);
-            jobItem.setProject(project);
-
-            execution.setId(executionId);
-            execution.setStatus(status);
-            execution.setJob(jobItem);
-            execution.setProject(project);
-            execution.setPermalink(permalink);
+            Execution execution = gson.fromJson(reader, Execution.class);
 
             // write a basic response
             response.setStatus(HttpServletResponse.SC_OK);

@@ -56,7 +56,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @return true if we should schedule a new build, false otherwise
      */
     private boolean shouldScheduleBuild(Execution execution) {
-        if (!executionStatuses.contains(execution.getStatus())) {
+        if (!executionStatuses.contains(execution.getStatus().toUpperCase())) {
             return false;
         }
         if (!filterJobs) {
