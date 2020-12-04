@@ -16,7 +16,7 @@
     </properties>
 
     <artifactId>rundeck</artifactId>
-    <version>3.6.8</version>
+    <version>3.6.9-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <name>Jenkins Rundeck plugin</name>
@@ -26,7 +26,7 @@
         <url>https://github.com/jenkinsci/rundeck-plugin</url>
         <connection>scm:git:git://github.com/jenkinsci/rundeck-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/rundeck-plugin.git</developerConnection>
-      <tag>rundeck-3.6.8</tag>
+      <tag>HEAD</tag>
     </scm>
 
     <developers>
