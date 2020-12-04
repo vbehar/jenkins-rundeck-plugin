@@ -78,7 +78,7 @@ be executed, along with its options :
 |                                                                                                                              |                                                                                                                                    |
 |------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
 | ![](docs/images/job-config.png) | ![](docs/images/job-config-check.png) |
-| *The per-job configuration screen*                                                                                           | *If you click* "Check Job" *it will display the job details (group, job name and project)*                                         |
+| *The per-job configuration screen*                                                                                           | *If set a Job ID, it will display the job details (group, job name and project)*                                         |
 
 -   Note that the "options" should be expressed in the java-properties
     format, and that Jenkins environment variables are expanded when
