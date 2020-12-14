@@ -175,7 +175,7 @@ public class RundeckClientManager implements RundeckManager {
         Response<Execution> executionResponse = callExecutions.execute();
 
         if(!executionResponse.isSuccessful()){
-            throw new AbortException("Error running the jon : " + executionResponse.message());
+            throw new AbortException("Error running the job : " + executionResponse.message());
         }
 
         Execution execution = executionResponse.body();

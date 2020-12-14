@@ -310,10 +310,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         PrintStream printStream = listener.getLogger();
         for (List<ExecLog> aRunDeckLogTail : runDeckLogTail) {
             for (ExecLog rundeckOutputEntry : aRunDeckLogTail) {
-                printStream.println("[" + rundeckOutputEntry.time + "] [" + rundeckOutputEntry.level + "] " + rundeckOutputEntry.log);
-//                printStream.println(rundeckOutputEntry);
-//                        String.format("[%s] [%s] %s",
-//                        new Object[]{ rundeckOutputEntry.getTime(), rundeckOutputEntry.getLevel(), rundeckOutputEntry.getMessage() }));
+                printStream.println("[" + rundeckOutputEntry.node + "] " + "[" + rundeckOutputEntry.time + "] [" + rundeckOutputEntry.level + "] " + rundeckOutputEntry.log);
             }
         }
         listener.getLogger().println("END RUNDECK TAILED LOG OUTPUT");
@@ -407,7 +404,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             List<ExecLog> logEntries = rundeckOutput.entries;
             if (null != logEntries) {
                 for (ExecLog rundeckOutputEntry : logEntries) {
-                    listener.getLogger().println(rundeckOutputEntry.log);
+                    listener.getLogger().println("["+ rundeckOutputEntry.node + "] " + "[" + rundeckOutputEntry.time + "] [" + rundeckOutputEntry.level + "] " + rundeckOutputEntry.log);
+
                 }
             }
         }
@@ -473,8 +471,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     }
 
     public String[] getTags() {
-        final String[] tags = this.tags;
-        return tags;
+        return Arrays.copyOf(tags, tags.length);
     }
 
     public Boolean getShouldWaitForRundeckJob() {
@@ -499,7 +496,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     /**
      * optional non default rundeck user for actual job
-     * @return
      */
     public String getJobUser() {
         return jobUser;
@@ -757,12 +753,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
         /**
          * check valid job
-         * @param jobIdentifier
-         * @param rundeckInstance
-         * @param user
-         * @param password
-         * @param token
-         * @return
          */
         @RequirePOST
         public FormValidation doCheckJobIdentifier(@QueryParameter("jobIdentifier") final String jobIdentifier,
