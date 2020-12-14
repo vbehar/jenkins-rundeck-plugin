@@ -45,6 +45,11 @@
             <name>Greg Schueler</name>
             <email>greg@simplifyops.com</email>
         </developer>
+        <developer>
+            <id>ltamaster</id>
+            <name>Luis Toledo</name>
+            <email>luis@variacode.com</email>
+        </developer>
     </developers>
 
     <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
