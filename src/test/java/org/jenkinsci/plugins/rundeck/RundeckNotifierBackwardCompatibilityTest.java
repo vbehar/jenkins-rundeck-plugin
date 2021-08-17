@@ -151,7 +151,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
         assertEquals("Default", notifier.getRundeckInstance());
         assertEquals("ded72a13-8d82-48be-bec9-08a3870d5210", notifier.getJobId());
         assertEquals("test", notifier.getTag());
-        assertTrue(Arrays.equals(new String[] {"test"}, notifier.getTags()));
+        assertEquals("test", notifier.getTags());
+        assertTrue(Arrays.equals(new String[] {"test"}, notifier.getTagsList()));
     }
 
     @LocalData
