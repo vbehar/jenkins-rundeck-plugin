@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.4</version>
+        <version>4.24</version>
         <relativePath />
     </parent>
 
@@ -88,9 +88,15 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.222.x</artifactId>
-                <version>10</version>
+                <version>887.vae9c8ac09ff7</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <!-- Upper bounds between JTH and Xalan serializer which contains older version -->
+            <dependency>
+                <groupId>xml-apis</groupId>
+                <artifactId>xml-apis</artifactId>
+                <version>1.4.01</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -121,20 +127,13 @@
             <version>2.7.2</version>
         </dependency>
         <dependency>
-            <!-- Upper bounds between JTH and Xalan serializer which contains older version -->
-            <groupId>xml-apis</groupId>
-            <artifactId>xml-apis</artifactId>
-            <version>1.4.01</version>
-        </dependency>
-        <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
             <version>2.6</version>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>11.0.1</version>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>caffeine-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jmockit</groupId>
@@ -145,13 +144,11 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>subversion</artifactId>
-            <version>2.8</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>ssh-credentials</artifactId>
-            <version>1.11</version>
             <scope>test</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.codehaus.groovy/groovy-all -->
@@ -207,7 +204,6 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>1.10.0</version>
                 <executions>
                     <execution>
                         <!-- Without joint compilation - no dependencies between Java and Groovy (inheritance)-->
@@ -230,7 +226,6 @@
             <plugin>
                 <groupId>org.jenkins-ci.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
-                <version>3.5</version>
                 <extensions>true</extensions>
                 <configuration>
                     <minimumJavaVersion />
@@ -247,7 +242,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19</version>
                 <configuration>
                     <testSourceDirectory>src/test/groovy</testSourceDirectory>
                     <testSourceDirectory>src/test/java</testSourceDirectory>
@@ -263,7 +257,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>2.6</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.apache.maven.wagon</groupId>
