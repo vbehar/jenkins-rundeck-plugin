@@ -39,7 +39,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
     public InMemoryRundeckJobCache(final RundeckJobCacheConfig rundeckJobCacheConfig) {
         Objects.requireNonNull(rundeckJobCacheConfig);
         this.cacheStatsDisplayHitThreshold = rundeckJobCacheConfig.getCacheStatsDisplayHitThreshold();
-        this.rundeckJobInstanceAwareCache = Caffeine.newBuilder()
+        this.rundeckJobInstanceAwareCache = Caffeine.newBuilder().recordStats()
                 .expireAfterAccess(RUNDECK_INSTANCE_CACHE_CONTAINER_EXPIRATION_IN_DAYS, TimeUnit.DAYS)    //just in case given instance was removed
                 .build(
                         rundeckInstanceName -> createJobCacheForRundeckInstance(rundeckInstanceName, rundeckJobCacheConfig));
@@ -47,7 +47,7 @@ public class InMemoryRundeckJobCache implements RundeckJobCache {
 
     private Cache<String, JobItem> createJobCacheForRundeckInstance(String rundeckInstanceName, RundeckJobCacheConfig rundeckJobCacheConfig) {
         log.info(format("Loading (GENERATING) jobs cache container for Rundeck instance %s", rundeckInstanceName));
-        return Caffeine.newBuilder()
+        return Caffeine.newBuilder().recordStats()
                 .expireAfterAccess(rundeckJobCacheConfig.getAfterAccessExpirationInMinutes(), TimeUnit.MINUTES)
                 .maximumSize(rundeckJobCacheConfig.getMaximumSize())
                 .build();
