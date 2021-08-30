@@ -31,8 +31,8 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
 
     /**
      * Standard constructor that contains sensible defaults for handling the API calls correctly.
-     *  @param rundeckClient
-     * @param executionId
+     * @param rundeckClient Rundeck Client
+     * @param executionId Execution ID
      */
     public RunDeckLogTail(RundeckManager rundeckClient, Long executionId) {
         this(rundeckClient, executionId, 50, 5, 15000L, 5000L, 2000L);
@@ -52,7 +52,7 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
 *            sleep time in ms that will be triggered if a api call fails
      * @param sleepUnmodified
 *            sleep time in ms when the results are unmodified
-     * @param sleepModified
+     * @param sleepModified sleep time in ms when the results are modified
      */
     public RunDeckLogTail(RundeckManager rundeckClient, Long executionId, int maxlines, int maxRetries, long sleepRetry, long sleepUnmodified, long sleepModified) {
         this.rundeckClient = rundeckClient;
@@ -82,7 +82,7 @@ public class RunDeckLogTail implements Iterable<List<ExecLog>> {
          * This will clear and update the result set for the @link {@link #next()} call using the RunDeck Client to perform an API call, it will also update the
          * offset and last modification date for the next API call. If there are no changes since the last call, this method will sleep for 5 seconds. If there
          * are changes, it will sleep for 2 seconds so it won't overload the API. Once the API call returns with 'completed' the next call to this method will
-         * return false.</br> If for some reason the sleep is interrupted, the next call to this method will return false.</br>
+         * return false. If for some reason the sleep is interrupted, the next call to this method will return false.
          */
         public boolean hasNext() {
 
