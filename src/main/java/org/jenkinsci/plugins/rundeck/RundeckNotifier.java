@@ -914,7 +914,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
              * @param jobUser job user
              * @param jobPassword job user password
              * @param jobToken job  token
-             * @return RundeckManager rundeck Manager
+             * @return RundeckManager rundeck Manager result
              */
         public RundeckManager getRundeckJobInstance(String rundeckInstanceName,
                                                    String jobUser, String jobPassword, String jobToken) {
