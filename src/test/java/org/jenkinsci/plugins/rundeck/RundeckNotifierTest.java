@@ -344,23 +344,23 @@ public class RundeckNotifierTest extends HudsonTestCase {
 
         notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, true, null, null, null);
         tags= new String[] {"#deploy"};
-        assertTrue(Arrays.equals(tags, notifier.getTags()));
+        assertTrue(Arrays.equals(tags, notifier.getTagsList()));
 
         notifier = new RundeckNotifier("Default", "1", null, null, null, false, true, null, null, null);
         tags= new String[0];
-        assertTrue(Arrays.equals(tags, notifier.getTags()));
+        assertTrue(Arrays.equals(tags, notifier.getTagsList()));
 
         notifier = new RundeckNotifier("Default", "1", null, null, "", false, true, null, null, null);
         tags= new String[0];
-        assertTrue(Arrays.equals(tags, notifier.getTags()));
+        assertTrue(Arrays.equals(tags, notifier.getTagsList()));
 
         notifier = new RundeckNotifier("Default", "1", null, null, "  ", false, true, null, null, null);
         tags= new String[0];
-        assertTrue(Arrays.equals(tags, notifier.getTags()));
+        assertTrue(Arrays.equals(tags, notifier.getTagsList()));
 
         notifier = new RundeckNotifier("Default", "1", null, null, "#tag1, #tag2", false, true, null, null, null);
         tags= new String[] {"#tag1", "#tag2"};
-        assertTrue(Arrays.equals(tags, notifier.getTags()));
+        assertTrue(Arrays.equals(tags, notifier.getTagsList()));
 
     }
 

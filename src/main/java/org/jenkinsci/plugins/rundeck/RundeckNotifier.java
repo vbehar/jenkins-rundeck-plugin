@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck;
 
+import com.thoughtworks.xstream.annotations.XStreamAlias;
 import hudson.*;
 import hudson.model.*;
 import hudson.model.Cause.UpstreamCause;
@@ -68,9 +69,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
     private final String nodeFilters;
 
+    @Deprecated
     private transient final String tag;
 
-    private String[] tags;
+    @XStreamAlias("tags")
+    private String[] tagsList;
 
     private final Boolean shouldWaitForRundeckJob;
 
@@ -111,7 +114,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         this.jobId = jobId;
         this.options = options;
         this.nodeFilters = nodeFilters;
-        this.tags = extracttags(tags,",");
+        this.tagsList = extracttags(tags,",");
         this.tag = null;
         this.shouldWaitForRundeckJob = shouldWaitForRundeckJob;
         this.shouldFailTheBuild = shouldFailTheBuild;
@@ -128,8 +131,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         if (StringUtils.isEmpty(rundeckInstance)) {
             this.rundeckInstance = "Default";
         }
-        if (tags == null) {
-            this.tags = extracttags(this.tag, ",");
+        if (tagsList == null) {
+            this.tagsList = extracttags(this.tag, ",");
         }
         return this;
     }
@@ -182,14 +185,14 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     private boolean shouldNotifyRundeck(@Nonnull Run<?, ?> build, @Nonnull TaskListener listener) {
         String info = "Instance '" + this.getRundeckInstance() + "' with rundeck user '" + this.performUser + "': Notifying Rundeck...";
 
-        if (tags.length == 0) {
+        if (tagsList.length == 0) {
             listener.getLogger().println(info);
             return true;
         }
 
         // check for the tag in the changelog
         for (Entry changeLog : getChangeSet(build)) {
-            for(String tag: tags) {
+            for(String tag: tagsList) {
                 if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
                     listener.getLogger().println("Found " + tag + " in changelog (from " + changeLog.getAuthor().getId()
                             + ") - Notifying Rundeck...");
@@ -208,7 +211,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                     AbstractBuild<?, ?> upstreamBuild = upstreamProject.getBuildByNumber(upstreamCause.getUpstreamBuild());
                     if (upstreamBuild != null) {
                         for (Entry changeLog : upstreamBuild.getChangeSet()) {
-                            for(String tag: tags) {
+                            for(String tag: tagsList) {
                                 if (StringUtils.containsIgnoreCase(changeLog.getMsg(), tag)) {
                                     listener.getLogger().println("Found " + tag + " in changelog (from "
                                             + changeLog.getAuthor().getId() + ") in upstream build ("
@@ -459,10 +462,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     public String getTag() {
         StringBuilder builder = new StringBuilder();
 
-        for (int i=0; i<tags.length; i++) {
-            builder.append(tags[i]);
+        for (int i=0; i<tagsList.length; i++) {
+            builder.append(tagsList[i]);
 
-            if (i+1<tags.length) {
+            if (i+1<tagsList.length) {
                 builder.append(",");
             }
         }
@@ -470,8 +473,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         return builder.toString();
     }
 
-    public String[] getTags() {
-        return Arrays.copyOf(tags, tags.length);
+    public String getTags() {
+        return getTag();
+    }
+
+    public String[] getTagsList() {
+        return Arrays.copyOf(tagsList, tagsList.length);
     }
 
     public Boolean getShouldWaitForRundeckJob() {

@@ -1,5 +1,11 @@
 ## Change Log
 
+#### Version 3.6.10 (tba)
+
+-   [JENKINS-54537](https://issues.jenkins.io/browse/JENKINS-54537)
+    Renamed property tags in RundeckNotifier to tagsList to resolve a conflict
+    between XStream and the Jenkins-Struct-Plugin (String-Array vs String)
+
 #### Version 3.6.1 (Jan 26, 2017)
 
 -   [JENKINS-34510](https://issues.jenkins-ci.org/browse/JENKINS-34510)
