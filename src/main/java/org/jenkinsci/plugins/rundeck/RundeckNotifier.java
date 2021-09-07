@@ -864,7 +864,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
          * @param rundeckInstanceName Rundeck instance name
          * @param rundeckInstance Rundeck client instance
          * @return the {@link JobItem} found, or null if not found
-         * @throws Exception in case of error, or if no job with this ID
          */
         public static JobItem findJob(String jobIdentifier, String rundeckInstanceName, RundeckManager rundeckInstance) {
             RundeckJobCache rundeckJobCache = getRundeckDescriptor().rundeckJobCache;
@@ -918,11 +917,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
             /**
              * get RundeckClient if optional user is given
-             * @param rundeckInstanceName
-             * @param jobUser
-             * @param jobPassword
-             * @param jobToken
-             * @return
+             * @param rundeckInstanceName rundeck instance
+             * @param jobUser job user
+             * @param jobPassword job user password
+             * @param jobToken job  token
+             * @return RundeckManager rundeck Manager result
              */
         public RundeckManager getRundeckJobInstance(String rundeckInstanceName,
                                                    String jobUser, String jobPassword, String jobToken) {
