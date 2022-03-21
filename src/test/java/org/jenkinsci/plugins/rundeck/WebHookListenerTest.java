@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
 
+import hudson.model.FreeStyleProject;
 import mockit.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -15,8 +16,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 
 public class WebHookListenerTest {
@@ -89,6 +93,69 @@ public class WebHookListenerTest {
 
                 }.getMockInstance()
         );
+    }
+
+    @Test
+    public void testInvalidHrefLink() throws IOException {
+
+        WebHookListener listener = new WebHookListener();
+        final String payload = "{\n" +
+                "    \"id\": \"123\",\n" +
+                "    \"uuid\": \"dsad\",\n" +
+                "    \"job\":{\n" +
+                "      \"id\": \"456\",\n" +
+                "      \"name\": \"Rundeck  Demo\",\n" +
+                "      \"group\": \"\",\n" +
+                "      \"permalink\":\"wrong/url\",\n" +
+                "      \"href\":\"wrong/url\",\n" +
+                "      \"project\": \"demo\"\n" +
+                "    },\n" +
+                "    \"status\":\"succeeded\",\n" +
+                "    \"dateStarted\":{\"date\":\"20022-03-10'T'14:45:35XXX\"},\n" +
+                "    \"dateEnded\":{\"date\":\"20022-03-10'T'14:45:35XXX\"},\n" +
+                "\t\"permalink\":\"wrong/url\",\n" +
+                "    \"href\":\"wrong/url\",\n" +
+                "    \"project\": \"demo\",\n" +
+                "    \"user\": \"admin\"\n" +
+                "}";
+
+        InputStream data = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
+        final ServletInputStream servletInputStream=new DelegatingServletInputStream(data);
+
+        List<String> jobsIdentifiers = new ArrayList<>();
+        List<String> executionStatuses = new ArrayList<>();
+        executionStatuses.add("SUCCEEDED");
+
+        RundeckTrigger trigger = new RundeckTrigger(false,jobsIdentifiers, executionStatuses );
+        FreeStyleProject project = jenkins.createFreeStyleProject();
+        project.addTrigger(trigger);
+
+        listener.doIndex(
+                new MockUp<StaplerRequest>() {
+                    @Mock
+                    public ServletInputStream getInputStream(){
+                        return servletInputStream;
+                    }
+                }.getMockInstance(),
+                new MockUp<StaplerResponse>() {
+                    @Mock
+                    public void setStatus(int num){
+                        assertEquals(num, 200);
+                    }
+
+                    @Mock
+                    public PrintWriter getWriter(){
+                        return new PrintWriter(System.out);
+                    }
+
+                }.getMockInstance()
+        );
+        assertNotNull(trigger);
+        assertEquals(trigger.getExecutionData().getPermalink(), null);
+        assertEquals(trigger.getExecutionData().getHref(), null);
+        assertEquals(trigger.getExecutionData().getJob().getPermalink(), null);
+        assertEquals(trigger.getExecutionData().getJob().getHref(), null);
+
     }
 
 }
