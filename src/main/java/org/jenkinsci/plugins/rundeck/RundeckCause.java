@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck;
 
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
@@ -21,6 +22,7 @@ public class RundeckCause extends Cause {
 
     private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
 
+    @XStreamOmitField
     private final Execution execution;
 
     /**
@@ -101,6 +103,7 @@ public class RundeckCause extends Cause {
      */
     public static class RundeckExecutionEnvironmentContributingAction implements EnvironmentContributingAction {
 
+        @XStreamOmitField
         private final Execution execution;
 
         /**

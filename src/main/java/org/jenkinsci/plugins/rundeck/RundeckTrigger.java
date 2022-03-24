@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rundeck;
 
+import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.AbstractProject;
@@ -30,6 +31,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     private final List<String> executionStatuses;
 
+    @XStreamOmitField
     private ExecutionData executionData;
 
     @DataBoundConstructor
