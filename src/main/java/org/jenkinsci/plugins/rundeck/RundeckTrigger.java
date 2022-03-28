@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.rundeck;
 
-import com.thoughtworks.xstream.annotations.XStreamOmitField;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.AbstractProject;
@@ -31,8 +30,6 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     private final List<String> executionStatuses;
 
-    @XStreamOmitField
-    private ExecutionData executionData;
 
     @DataBoundConstructor
     public RundeckTrigger(Boolean filterJobs, List<String> jobsIdentifiers, List<String> executionStatuses) {
@@ -48,7 +45,6 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      */
     public void onNotification(ExecutionData execution) {
         if (shouldScheduleBuild(execution)) {
-            executionData = execution;
             if(job != null){
                 job.scheduleBuild(new RundeckCause(execution));
             }
@@ -170,7 +166,4 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         }
     }
 
-    public ExecutionData getExecutionData() {
-        return executionData;
-    }
 }

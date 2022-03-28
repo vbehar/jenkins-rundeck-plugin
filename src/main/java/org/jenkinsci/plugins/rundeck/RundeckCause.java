@@ -22,8 +22,7 @@ public class RundeckCause extends Cause {
 
     private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
 
-    @XStreamOmitField
-    private final Execution execution;
+    private final transient Execution execution;
 
     /**
      * Instantiate a new cause for the given execution
