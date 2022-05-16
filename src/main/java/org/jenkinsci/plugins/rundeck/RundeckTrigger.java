@@ -11,6 +11,7 @@ import java.util.List;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rundeck.client.ExecutionData;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.client.api.model.Execution;
@@ -29,6 +30,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     private final List<String> executionStatuses;
 
+
     @DataBoundConstructor
     public RundeckTrigger(Boolean filterJobs, List<String> jobsIdentifiers, List<String> executionStatuses) {
         this.filterJobs = filterJobs != null ? filterJobs : false;
@@ -41,7 +43,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      *
      * @param execution at the origin of the notification
      */
-    public void onNotification(Execution execution) {
+    public void onNotification(ExecutionData execution) {
         if (shouldScheduleBuild(execution)) {
             if(job != null){
                 job.scheduleBuild(new RundeckCause(execution));
@@ -55,7 +57,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
-    private boolean shouldScheduleBuild(Execution execution) {
+    private boolean shouldScheduleBuild(ExecutionData execution) {
         if (!executionStatuses.contains(execution.getStatus().toUpperCase())) {
             return false;
         }
@@ -163,4 +165,5 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
             return result;
         }
     }
+
 }

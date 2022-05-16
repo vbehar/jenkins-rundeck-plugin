@@ -1,14 +1,21 @@
 package org.jenkinsci.plugins.rundeck;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
 import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import javax.servlet.http.HttpServletResponse;
+
+import jenkins.model.Jenkins;
+import org.apache.commons.lang.StringEscapeUtils;
+import org.jenkinsci.plugins.rundeck.client.ExecutionData;
+import org.jenkinsci.plugins.rundeck.util.ParseJson;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -30,21 +37,23 @@ public class WebHookListener {
         try{
 
             Gson gson = new Gson();
-
             Reader reader = new InputStreamReader(request.getInputStream(), "UTF-8");
-            Execution execution = gson.fromJson(reader, Execution.class);
+            JsonElement jsonElement = gson.fromJson(reader, JsonElement.class);
+            JsonElement jsonElementCleaned = ParseJson.clean(jsonElement);
+            Execution execution = gson.fromJson(jsonElementCleaned, Execution.class);
+            ExecutionData executionSafeData = new ExecutionData(execution);
 
             // write a basic response
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentType("text/plain");
 
             // notify all registered triggers
-            for (AbstractProject<?, ?> job : Hudson.getInstance().getAllItems(AbstractProject.class)) {
+            for (AbstractProject<?, ?> job : Jenkins.get().getAllItems(AbstractProject.class)) {
                 RundeckTrigger trigger = job.getTrigger(RundeckTrigger.class);
                 if (trigger != null) {
                     response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
                     response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
-                    trigger.onNotification(execution);
+                    trigger.onNotification(executionSafeData);
                 }
             }
         }catch (JsonSyntaxException e){
@@ -61,5 +70,7 @@ public class WebHookListener {
         }
 
     }
+
+
 
 }

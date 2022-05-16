@@ -21,7 +21,7 @@ public class RundeckCause extends Cause {
 
     private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
 
-    private final Execution execution;
+    private final transient Execution execution;
 
     /**
      * Instantiate a new cause for the given execution
@@ -101,7 +101,7 @@ public class RundeckCause extends Cause {
      */
     public static class RundeckExecutionEnvironmentContributingAction implements EnvironmentContributingAction {
 
-        private final Execution execution;
+        private final transient Execution execution;
 
         /**
          * Instantiate a new action, which will use the data from the given execution

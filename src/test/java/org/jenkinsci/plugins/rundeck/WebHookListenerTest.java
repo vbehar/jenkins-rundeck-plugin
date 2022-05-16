@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.rundeck;
 
-
 import mockit.*;
 import org.junit.Rule;
 import org.junit.Test;
@@ -90,7 +89,6 @@ public class WebHookListenerTest {
                 }.getMockInstance()
         );
     }
-
 }
 
 class DelegatingServletInputStream extends ServletInputStream {
