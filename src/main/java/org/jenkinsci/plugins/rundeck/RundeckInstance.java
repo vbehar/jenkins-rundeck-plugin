@@ -19,15 +19,15 @@ public class RundeckInstance {
     private boolean systemProxyEnabled;
     private boolean useIntermediateStreamFile;
 
-    @DataBoundConstructor
-    public RundeckInstance(final String name, final String url, final Integer apiVersion, final String login, final Secret token, final Secret password) {
-        this.name = name;
-        this.url = url;
-        this.apiVersion = apiVersion;
-        this.login = login;
-        this.token = token;
-        this.password = password;
-    }
+    // @DataBoundConstructor
+    // public RundeckInstance(final String name, final String url, final Integer apiVersion, final String login, final Secret token, final Secret password) {
+    //     this.name = name;
+    //     this.url = url;
+    //     this.apiVersion = apiVersion;
+    //     this.login = login;
+    //     this.token = token;
+    //     this.password = password;
+    // }
 
     public static RundeckInstanceBuilder builder() {
         return new RundeckInstanceBuilder();
