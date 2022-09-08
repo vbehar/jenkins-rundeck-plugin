@@ -1,10 +1,13 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
 public class RundeckInstance {
 
+    private String name;
     private String url;
     private Integer apiVersion = RundeckClientManager.API_VERSION;
     private String login;
@@ -15,15 +18,34 @@ public class RundeckInstance {
     private boolean systemProxyEnabled;
     private boolean useIntermediateStreamFile;
 
+    @DataBoundConstructor
+    public RundeckInstance(final String name, final String url, final String apiVersion, final String login, final String token, final String password) {
+        this.name = name;
+        this.url = url;
+        this.apiVersion = apiVersion;
+        this.login = login;
+        this.token = token;
+        this.password = password;
+    }
 
     public static RundeckInstanceBuilder builder() {
         return new RundeckInstanceBuilder();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @DataBoundSetter
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getUrl() {
         return url;
     }
 
+    @DataBoundSetter
     public void setUrl(String url) {
         this.url = url;
     }
@@ -32,6 +54,7 @@ public class RundeckInstance {
         return apiVersion;
     }
 
+    @DataBoundSetter
     public void setApiVersion(int apiVersion) {
         this.apiVersion = apiVersion;
     }
@@ -40,6 +63,7 @@ public class RundeckInstance {
         return login;
     }
 
+    @DataBoundSetter
     public void setLogin(String login) {
         this.login = login;
     }
@@ -59,6 +83,7 @@ public class RundeckInstance {
         return null;
     }
 
+    @DataBoundSetter
     public void setToken(Secret token) {
         this.token = token;
     }
@@ -70,6 +95,7 @@ public class RundeckInstance {
         return null;
     }
 
+    @DataBoundSetter
     public void setPassword(Secret password) {
         this.password = password;
     }
