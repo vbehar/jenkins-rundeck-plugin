@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
+import hudson.Util;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
@@ -19,13 +20,13 @@ public class RundeckInstance {
     private boolean useIntermediateStreamFile;
 
     @DataBoundConstructor
-    public RundeckInstance(final String name, final String url, final String apiVersion, final String login, final String token, final String password) {
+    public RundeckInstance(final String name, final String url, final Integer apiVersion, final String login, final String token, final String password) {
         this.name = name;
         this.url = url;
         this.apiVersion = apiVersion;
         this.login = login;
-        this.token = token;
-        this.password = password;
+        this.token = Secret.fromString(Util.fixEmpty(token));
+        this.password = Secret.fromString(Util.fixEmpty(password));
     }
 
     public static RundeckInstanceBuilder builder() {
