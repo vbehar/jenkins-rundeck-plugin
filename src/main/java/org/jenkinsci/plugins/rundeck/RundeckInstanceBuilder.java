@@ -97,7 +97,8 @@ public class RundeckInstanceBuilder {
     @Override
     public String toString() {
         return "RundeckInstanceBuilder{" +
-                "url='" + url + '\'' +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +
