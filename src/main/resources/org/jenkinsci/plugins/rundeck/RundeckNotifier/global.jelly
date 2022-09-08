@@ -13,6 +13,7 @@
       </r:blockWrapper>
     </f:entry>
     <f:entry title="Instances" description="List of Rundeck instances">
+      <f:repeatableProperty add="Add Rundeck" field="rundeckInstances"/>
     </f:entry>
   </f:section>
 </j:jelly>
