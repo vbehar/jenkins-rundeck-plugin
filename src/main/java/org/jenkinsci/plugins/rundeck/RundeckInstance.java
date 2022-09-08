@@ -140,7 +140,8 @@ public class RundeckInstance {
     @Override
     public String toString() {
         return "RundeckInstance{" +
-                "url='" + url + '\'' +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +
