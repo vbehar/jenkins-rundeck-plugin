@@ -590,7 +590,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 //instance.put("Default", RundeckInstance.builder().client(rundeckInstance).build());
                 RundeckInstance instance = RundeckInstance.builder().client(rundeckInstance).build();
                 instance.setName("Default");
-                this.setRundeckInstances(Arrays.asList(instance))   ;
+                RundeckInstance[] rundeckArr = new RundeckInstance[1];
+                rundeckArr[0] = instance
+                this.setRundeckInstances(rundeckArr)   ;
             }
             return this;
         }
@@ -647,7 +649,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 log.warning(format("Unable to deserialize Rundeck instances fom JSON. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
             }
 
-            this.setRundeckInstances(newInstances);
+            //this.setRundeckInstances(newInstances);
+            this.setRundeckInstances(newInstances.toArray(new RundeckInstance[0]));
             configureRundeckJobCache(json);
 
             save();
@@ -916,10 +919,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return "Rundeck";
         }
 
-        public RundeckInstance getRundeckInstance(String key) {
-            //return rundeckInstances.get(key);
+        public RundeckInstance getRundeckInstance(String name) {
+            //return rundeckInstances.get(name);
             for(RundeckInstance eachInstance: rundeckInstances) {
-                if(eachInstance.getName().equals(key))
+                if(eachInstance.getName().equals(name))
                     return eachInstance; 
             }
             return null;
