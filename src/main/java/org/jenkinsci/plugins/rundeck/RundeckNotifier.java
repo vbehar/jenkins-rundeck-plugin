@@ -640,7 +640,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                         }
                         builder.name(instance.getString("name"));
                         //newInstances.put(instance.getString("name"), builder.build());
-                        newInstance.add(builder.build());
+                        newInstances.add(builder.build());
                     }
                 }
             } catch (IllegalArgumentException e) {
@@ -1001,12 +1001,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             this.rundeckInstances.add(instance);
         }
 
-        public List <RundeckInstance> getRundeckInstances() {
-            return rundeckInstances;
+        public RundeckInstance[] getRundeckInstances() {
+            return rundeckInstances.toArray(new RundeckInstance[0]);
         }
 
-        public void setRundeckInstances(List<RundeckInstance> instances) {
-            this.rundeckInstances = instances;
+        public void setRundeckInstances(RundeckInstance[] instances) {
+            this.rundeckInstances.replaceBy(instances);
         }
 
         public RundeckJobCacheConfig getRundeckJobCacheConfig() {
