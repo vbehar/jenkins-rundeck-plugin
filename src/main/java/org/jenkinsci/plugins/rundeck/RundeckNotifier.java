@@ -619,7 +619,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             }
 
             //Map<String, RundeckInstance> newInstances = new LinkedHashMap<String, RundeckInstance>(instances.size());
-            CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>()
+            CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>();
             try {
                 for (int i=0; i< instances.size(); i++) {
                     JSONObject instance = instances.getJSONObject(i);
