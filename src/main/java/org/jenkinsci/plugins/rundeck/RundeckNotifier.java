@@ -945,7 +945,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 if(eachInstance.getName().equals(rundeckInstanceName))
                     instance = eachInstance; 
             }
-            throw new Exception("rundeckInstances:" + rundeckInstances);
+
             if(instance==null){
                 return null;
             }
