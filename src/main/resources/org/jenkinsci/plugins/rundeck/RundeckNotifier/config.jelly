@@ -8,11 +8,11 @@
       <div class="error">There are no rundeck instances configured.</div>
     </f:entry>
   </j:if>
-  <j:if test="${instances.size() gt 0}">
+  <j:if test="${instances.length gt 0}">
     <f:entry title="Rundeck Instance: ">
       <select class="setting-input" name="rundeckInstance">
         <j:forEach var="inst" items="${instances}">
-          <f:option value="${inst.key}" selected="${inst.key.equals(instance.rundeckInstance)}">${inst.key}
+          <f:option value="${inst.getName()}" selected="${inst.getName().equals(instance.rundeckInstance)}">${inst.getName()}
           </f:option>
         </j:forEach>
       </select>
