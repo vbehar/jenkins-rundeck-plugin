@@ -77,7 +77,7 @@ public class RundeckInstanceBuilder {
         return this;
     }
 
-    RundeckInstanceBuilder name(Secret name){
+    RundeckInstanceBuilder name(String name){
         this.name = name;
         return this;
     }
