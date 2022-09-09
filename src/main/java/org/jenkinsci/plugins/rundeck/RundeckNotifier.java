@@ -592,7 +592,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 instance.setName("Default");
                 RundeckInstance[] rundeckArr = new RundeckInstance[1];
                 rundeckArr[0] = instance;
-                this.setRundeckInstances(rundeckArr)   ;
+                this.setRundeckInstances(rundeckArr);
             }
             return this;
         }
