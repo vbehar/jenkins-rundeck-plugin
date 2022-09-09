@@ -25,6 +25,9 @@ public class RundeckInstanceBuilder {
     }
 
     RundeckInstanceBuilder client(RundeckManager client){
+        if(client.getRundeckInstance().getName()!=null) {
+            this.name = client.getRundeckInstance().getName();
+        }
         this.url = client.getRundeckInstance().getUrl();
          if(client.getRundeckInstance().getPassword()!=null){
             this.password = client.getRundeckInstance().getPassword();
