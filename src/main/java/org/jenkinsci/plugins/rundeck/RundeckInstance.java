@@ -6,7 +6,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
-public class RundeckInstance {
+public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
 
     private String name;
     private String url;
@@ -150,5 +150,9 @@ public class RundeckInstance {
                 ", systemProxyEnabled=" + systemProxyEnabled +
                 ", useIntermediateStreamFile=" + useIntermediateStreamFile +
                 '}';
+    }
+    @Extension
+    public static class DescriptorImpl extends Descriptor<RundeckInstance> {
+        public String getDisplayName() { return ""; }
     }
 }
