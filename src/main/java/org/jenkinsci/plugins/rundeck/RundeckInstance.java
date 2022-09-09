@@ -2,6 +2,9 @@ package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
 import hudson.Util;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.model.AbstractDescribableImpl;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
