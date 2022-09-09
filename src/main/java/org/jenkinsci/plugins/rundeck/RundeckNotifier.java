@@ -1001,7 +1001,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         // }
         
         public void addRundeckInstance(RundeckInstance instance) {
-            this.rundeckInstances.add(instance);
+            rundeckInstances.add(instance);
         }
 
         public RundeckInstance[] getRundeckInstances() {
@@ -1009,7 +1009,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
 
         public void setRundeckInstances(RundeckInstance[] instances) {
-            this.rundeckInstances.replaceBy(instances);
+            rundeckInstances.replaceBy(instances);
         }
 
         public RundeckJobCacheConfig getRundeckJobCacheConfig() {
