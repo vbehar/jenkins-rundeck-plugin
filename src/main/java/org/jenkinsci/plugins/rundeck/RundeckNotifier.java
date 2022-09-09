@@ -940,14 +940,14 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         public RundeckManager getRundeckJobInstance(String rundeckInstanceName,
                                                    String jobUser, String jobPassword, String jobToken) {
 
-
+            log.info("within getRundeckJobInstance: rundeckInstanceName=" + rundeckInstanceName);
             //RundeckInstance instance = rundeckInstances.get(rundeckInstanceName);
             RundeckInstance instance = null;
             for(RundeckInstance eachInstance: rundeckInstances) {
                 if(eachInstance.getName().equals(rundeckInstanceName))
                     instance = eachInstance; 
             }
-
+            log.info("found:" + instance.getName());
             if(instance==null){
                 return null;
             }
