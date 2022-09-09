@@ -14,6 +14,7 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
+import hudson.util.CopyOnWriteList;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
@@ -543,8 +544,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         @Deprecated
         private transient RundeckInstance rundeckInstance;
 
-        @CopyOnWrite
-        private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();
+        private volatile CopyOnWriteList<RundeckInstance> rundeckInstances = new CopyOnWriteList<RundeckInstance>();
+        // @CopyOnWrite
+        // private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();
 
         private volatile transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
 
@@ -584,9 +586,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         // support backward compatibility
         protected Object readResolve() {
             if (rundeckInstance != null) {
-                Map<String, RundeckInstance> instance = new LinkedHashMap<String, RundeckInstance>();
-                instance.put("Default", RundeckInstance.builder().client(rundeckInstance).build());
-                this.setRundeckInstances(instance);
+                //Map<String, RundeckInstance> instance = new LinkedHashMap<String, RundeckInstance>();
+                //instance.put("Default", RundeckInstance.builder().client(rundeckInstance).build());
+                RundeckInstance instance = RundeckInstance.builder().client(rundeckInstance).build();
+                instance.setName("Default");
+                this.setRundeckInstances(Arrays.asList(instance))   ;
             }
             return this;
         }
@@ -614,8 +618,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 }
             }
 
-            Map<String, RundeckInstance> newInstances = new LinkedHashMap<String, RundeckInstance>(instances.size());
-
+            //Map<String, RundeckInstance> newInstances = new LinkedHashMap<String, RundeckInstance>(instances.size());
+            CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>()
             try {
                 for (int i=0; i< instances.size(); i++) {
                     JSONObject instance = instances.getJSONObject(i);
@@ -634,7 +638,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                         }else{
                             builder.version(RundeckClientManager.API_VERSION);
                         }
-                        newInstances.put(instance.getString("name"), builder.build());
+                        builder.name(instance.getString("name"));
+                        //newInstances.put(instance.getString("name"), builder.build());
+                        newInstance.add(builder.build());
                     }
                 }
             } catch (IllegalArgumentException e) {
@@ -911,7 +917,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         }
 
         public RundeckInstance getRundeckInstance(String key) {
-            return rundeckInstances.get(key);
+            //return rundeckInstances.get(key);
+            for(RundeckInstance eachInstance: rundeckInstances) {
+                if(eachInstance.getName().equals(key))
+                    return eachInstance; 
+            }
+            return null;
         }
 
 
@@ -927,7 +938,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                                                    String jobUser, String jobPassword, String jobToken) {
 
 
-            RundeckInstance instance = rundeckInstances.get(rundeckInstanceName);
+            //RundeckInstance instance = rundeckInstances.get(rundeckInstanceName);
+            RundeckInstance instance = null;
+            for(RundeckInstance eachInstance: rundeckInstances) {
+                if(eachInstance.getName().equals(rundeckInstanceName))
+                    instance = eachInstance; 
+            }
 
             if(instance==null){
                 return null;
@@ -975,17 +991,21 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return client;
         }
 
-        public void addRundeckInstance(String key, RundeckInstance instance) {
-            Map<String, RundeckInstance> instances = new LinkedHashMap<String, RundeckInstance>(this.rundeckInstances);
-            instances.put(key, instance);
-            this.setRundeckInstances(instances);
+        // public void addRundeckInstance(String key, RundeckInstance instance) {
+        //     Map<String, RundeckInstance> instances = new LinkedHashMap<String, RundeckInstance>(this.rundeckInstances);
+        //     instances.put(key, instance);
+        //     this.setRundeckInstances(instances);
+        // }
+        
+        public void addRundeckInstance(RundeckInstance instance) {
+            this.rundeckInstances.add(instance);
         }
 
-        public Map<String, RundeckInstance> getRundeckInstances() {
+        public List <RundeckInstance> getRundeckInstances() {
             return rundeckInstances;
         }
 
-        public void setRundeckInstances(Map<String, RundeckInstance> instances) {
+        public void setRundeckInstances(List<RundeckInstance> instances) {
             this.rundeckInstances = instances;
         }
 

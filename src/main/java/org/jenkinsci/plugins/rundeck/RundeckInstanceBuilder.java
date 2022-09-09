@@ -5,7 +5,7 @@ import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 
 public class RundeckInstanceBuilder {
-    //private String name;
+    private String name;
     private String url;
     private int apiVersion=RundeckClientManager.API_VERSION;
     private String login;
@@ -77,6 +77,11 @@ public class RundeckInstanceBuilder {
         return this;
     }
 
+    RundeckInstanceBuilder name(Secret name){
+        this.name = name;
+        return this;
+    }
+
     public RundeckInstance build() {
         RundeckInstance client = new RundeckInstance();
         client.setUrl(this.url);
@@ -97,8 +102,8 @@ public class RundeckInstanceBuilder {
     @Override
     public String toString() {
         return "RundeckInstanceBuilder{" +
-                //"name='" + name + '\'' +
-                "url='" + url + '\'' +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +
