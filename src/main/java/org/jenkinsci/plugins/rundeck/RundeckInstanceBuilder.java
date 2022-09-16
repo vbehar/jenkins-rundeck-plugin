@@ -89,9 +89,9 @@ public class RundeckInstanceBuilder {
     }
 
     public RundeckInstance build() {
-        RundeckInstance client = new RundeckInstance();
-        client.setName(this.name);
-        client.setUrl(this.url);
+        RundeckInstance client = new RundeckInstance(this.name, this.url);
+        //client.setName(this.name);
+        //client.setUrl(this.url);
         client.setApiVersion(this.apiVersion);
         client.setLogin(this.login);
         client.setPassword(this.password);

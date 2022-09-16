@@ -610,19 +610,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
-            JSONArray instances = json.optJSONArray("inst");
-
-            if (instances == null) {
-                instances = new JSONArray();
-
-                if (json.optJSONObject("inst") != null) {
-                    instances.add(json.getJSONObject("inst"));
-                }
-            }
-
-            //Map<String, RundeckInstance> newInstances = new LinkedHashMap<String, RundeckInstance>(instances.size());
             CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>();
-            try {
+            log.info("json: " + json.toString());
+            newInstances.replaceBy(req.bindJSONToList(RundeckInstance.class, json.get("rundeckInstances")));
+            log.info("newInstances:"+newInstances.toString());
+
+            /*try {
                 for (int i=0; i< instances.size(); i++) {
                     JSONObject instance = instances.getJSONObject(i);
 
@@ -647,7 +640,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 }
             } catch (IllegalArgumentException e) {
                 log.warning(format("Unable to deserialize Rundeck instances fom JSON. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
-            }
+            }*/
 
             //this.setRundeckInstances(newInstances);
             this.setRundeckInstances(newInstances.toArray(new RundeckInstance[0]));

@@ -22,15 +22,19 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
     private boolean systemProxyEnabled;
     private boolean useIntermediateStreamFile;
 
-    // @DataBoundConstructor
-    // public RundeckInstance(final String name, final String url, final Integer apiVersion, final String login, final Secret token, final Secret password) {
-    //     this.name = name;
-    //     this.url = url;
+    @DataBoundConstructor
+    public RundeckInstance(final String name, final String url) {
+        this.name = name;
+        this.url = url;
     //     this.apiVersion = apiVersion;
     //     this.login = login;
     //     this.token = token;
     //     this.password = password;
-    // }
+    }
+
+    public RundeckInstance() {
+        
+    }
 
     public static RundeckInstanceBuilder builder() {
         return new RundeckInstanceBuilder();
@@ -40,7 +44,6 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
         return name;
     }
 
-    @DataBoundSetter
     public void setName(String name) {
         this.name = name;
     }
@@ -49,7 +52,6 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
         return url;
     }
 
-    @DataBoundSetter
     public void setUrl(String url) {
         this.url = url;
     }
