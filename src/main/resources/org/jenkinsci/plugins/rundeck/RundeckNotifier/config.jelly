@@ -8,7 +8,7 @@
       <div class="error">There are no rundeck instances configured.</div>
     </f:entry>
   </j:if>
-  <j:if test="${instances.length gt 0}">
+  <j:if test="${instances.size() gt 0}">
     <f:entry title="Rundeck Instance: ">
       <select class="setting-input" name="rundeckInstance">
         <j:forEach var="inst" items="${instances}">

@@ -545,8 +545,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         private transient RundeckInstance rundeckInstance;
 
         private volatile CopyOnWriteList<RundeckInstance> rundeckInstances = new CopyOnWriteList<RundeckInstance>();
-        // @CopyOnWrite
-        // private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();
 
         private volatile transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
 
@@ -611,9 +609,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
             CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>();
-            log.info("json: " + json.toString());
             newInstances.replaceBy(req.bindJSONToList(RundeckInstance.class, json.get("rundeckInstances")));
-            log.info("newInstances:"+newInstances.toString());
 
             /*try {
                 for (int i=0; i< instances.size(); i++) {
