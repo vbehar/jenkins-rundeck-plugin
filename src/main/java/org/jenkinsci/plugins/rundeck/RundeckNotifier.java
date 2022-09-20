@@ -676,10 +676,10 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                             Util.fixEmpty(password.getPlainText()),
                             Util.fixEmpty(token.getPlainText())));
                 } catch (Exception e) {
-                    throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
+                    throw new FormException("Failed to get job with the identifier : " + jobIdentifier+e.getMessage(), e, "jobIdentifier");
                 }
                 if (job == null) {
-                    throw new FormException("Could not find a job with the identifier : " + jobIdentifier, "jobIdentifier");
+                    throw new FormException("newInstance: Could not find a job with the identifier :" +jobIdentifier+ " and rundeckInstance:"+rundeckInstance+" " + this.getRundeckJobInstance(rundeckInstance, jobUser, Util.fixEmpty(Secret.fromString(jobPassword).getPlainText()), Util.fixEmpty(Secret.fromString(jobToken).getPlainText())).getRundeckInstance().toString(), "jobIdentifier");
                 }
             }
             return new RundeckNotifier(rundeckInstance,
@@ -712,48 +712,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
             rundeckJobCache.invalidate();
             return FormValidation.ok("Done");
-        }
-
-        @SuppressWarnings("unused")
-        @RequirePOST
-        public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
-                                               @QueryParameter("rundeck.login") final String login,
-                                               @QueryParameter("rundeck.password") final Secret password,
-                                               @QueryParameter("rundeck.authtoken") final Secret token,
-                                               @QueryParameter(value = "rundeck.apiversion", fixEmpty = true) final Integer apiversion) {
-
-
-            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
-
-            RundeckInstanceBuilder builder = new RundeckInstanceBuilder().url(url);
-
-            if (null != apiversion && apiversion > 0) {
-                builder.version(apiversion);
-            } else {
-                builder.version(RundeckClientManager.API_VERSION);
-            }
-            try {
-                if (!token.getPlainText().isEmpty()) {
-                    builder.token(token);
-                } else {
-                    builder.login(login, password);
-                }
-            } catch (IllegalArgumentException e) {
-                return FormValidation.error("Rundeck configuration is not valid ! %s", e.getMessage());
-            }
-            RundeckInstance instance = builder.build();
-            RundeckClientManager rundeck = RundeckInstanceBuilder.createClient(instance);
-            try {
-                rundeck.ping();
-            } catch (IOException e) {
-                return FormValidation.error("We couldn't find a live Rundeck instance at %s", rundeck.getRundeckInstance().getUrl());
-            }
-            try {
-                rundeck.testAuth();
-            } catch (IOException e) {
-                return FormValidation.error("Error authenticating Rundeck !",  rundeck.getRundeckInstance().getUrl());
-            }
-            return FormValidation.ok("Your Rundeck instance is alive, and your credentials are valid !");
         }
 
         /**
@@ -791,7 +749,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                         Util.fixEmpty(password.getPlainText()),
                         Util.fixEmpty(token.getPlainText()));
             }catch (Exception e){
-                return FormValidation.error(e.getMessage());
+                return FormValidation.error("#794 "+e.getMessage());
             }
 
             if (client == null) {
@@ -814,7 +772,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                 }
                 JobItem job = findJobUncached(jobIdentifier, client);
                 if (job == null) {
-                    return FormValidation.error("Could not find a job with the identifier : %s", jobIdentifier);
+                    return FormValidation.error("doCheckFormIdentifier->Could not find a job with the identifier : %s", jobIdentifier);
                 } else {
                     String fullname = job.getName();
                     if(job.getGroup()!= null && !job.getGroup().isEmpty()){

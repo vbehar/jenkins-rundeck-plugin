@@ -23,7 +23,8 @@
             <f:entry title="API Version" field="apiVersion" help="/plugin/rundeck/help-globalConfig-apiversion.html">
               <f:textbox/>
             </f:entry>
-            <f:validateButton title="Test Connection" progress="Testing..."/>
+            <f:validateButton title="Test Connection" progress="Testing..." method="testConnection"
+              with="url,login,password,token,apiVersion"/>
             <f:entry title="">
               <div align="right">
                 <f:repeatableDeleteButton value="Delete Rundeck"/>
