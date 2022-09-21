@@ -13,6 +13,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
+import org.rundeck.client.api.LoginFailed;
+
 import java.io.IOException;
 
 public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
@@ -68,7 +70,8 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
 
     @DataBoundSetter
     public void setApiVersion(int apiVersion) {
-        this.apiVersion = apiVersion;
+        if(apiVersion > 0)
+            this.apiVersion = apiVersion; 
     }
 
     public String getLogin() {
@@ -112,10 +115,6 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
         this.password = password;
     }
 
-    public void setApiVersion(Integer apiVersion) {
-        this.apiVersion = apiVersion;
-    }
-
     public boolean isSslHostnameVerifyAllowAll() {
         return sslHostnameVerifyAllowAll;
     }
@@ -155,7 +154,6 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
                 ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
-                ", token=" + token +
                 ", sslHostnameVerifyAllowAll=" + sslHostnameVerifyAllowAll +
                 ", sslCertificateTrustAllowSelfSigned=" + sslCertificateTrustAllowSelfSigned +
                 ", systemProxyEnabled=" + systemProxyEnabled +
@@ -197,8 +195,10 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
             RundeckClientManager rundeck = RundeckInstanceBuilder.createClient(instance);
             try {
                 rundeck.ping();
-            } catch (IOException e) {
-                return FormValidation.error("We couldn't find a live Rundeck instance at %s", rundeck.getRundeckInstance().getUrl());
+            }catch (LoginFailed e) {
+                return FormValidation.error("Error: %s", e.getMessage());
+            }catch (Exception e) {
+                return FormValidation.error("We couldn't find a live Rundeck instance at %s error: %s", rundeck.getRundeckInstance().getUrl(), e.getMessage());
             }
             try {
                 rundeck.testAuth();

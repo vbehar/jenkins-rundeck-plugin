@@ -676,7 +676,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                             Util.fixEmpty(password.getPlainText()),
                             Util.fixEmpty(token.getPlainText())));
                 } catch (Exception e) {
-                    throw new FormException("Failed to get job with the identifier : " + jobIdentifier+e.getMessage(), e, "jobIdentifier");
+
+                    throw new FormException("Failed to get job with the identifier : " + jobIdentifier+" rdIns: "+"rundeckInstance:-"+getRundeckInstance(rundeckInstance)+" jobUser:-"+ jobUser+" jobPassword:-" +Util.fixEmpty(Secret.fromString(jobPassword).getPlainText())+ " jobToken:-"+Util.fixEmpty(Secret.fromString(jobToken).getPlainText()), e, "jobIdentifier");
                 }
                 if (job == null) {
                     throw new FormException("newInstance: Could not find a job with the identifier :" +jobIdentifier+ " and rundeckInstance:"+rundeckInstance+" " + this.getRundeckJobInstance(rundeckInstance, jobUser, Util.fixEmpty(Secret.fromString(jobPassword).getPlainText()), Util.fixEmpty(Secret.fromString(jobToken).getPlainText())).getRundeckInstance().toString(), "jobIdentifier");
@@ -835,20 +836,27 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             }
 
             JobItem job = null;
-
+            // added for testing
+            log.info("GOING TO FIND JOB: " + jobIdentifier);
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
                 String groupPath = matcher.group(2);
                 String name = matcher.group(3);
+                log.info("name:"+name+" project: "+project+" groupPath:"+groupPath);
                 try{
                     job = rundeckClient.findJob(project, groupPath, name);
+                    log.info("findJob1->job:"+job);
                 }catch (Exception e){
                     log.warning(e.getMessage());
                 }
             } else {
                 try{
                     job = rundeckClient.getJob(jobIdentifier);
+                    log.info("getJob2->job:"+job);
+                    log.info(rundeckClient.getRundeckInstance().toString());
+                    log.info("ping: "+rundeckClient.ping());
+                    log.info("testAuth: "+rundeckClient.testAuth()+"");
                 }catch (Exception e){
                     log.warning(e.getMessage());
                 }
@@ -903,7 +911,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             }
 
             if(rundeckBuilder.getClient()==null){
-                client = RundeckInstanceBuilder.createClient(instance);
+                client = rundeckBuilder.createClient(instance);
             }else{
                 client = rundeckBuilder.getClient();
             }

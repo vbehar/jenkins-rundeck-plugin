@@ -113,7 +113,6 @@ public class RundeckInstanceBuilder {
                 ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
-                ", token=" + token +
                 ", password=" + password +
                 ", client=" + client +
                 '}';
