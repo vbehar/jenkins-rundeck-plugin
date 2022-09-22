@@ -419,6 +419,8 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
     @Override
     public Action getProjectAction(AbstractProject<?, ?> project) {
         try {
+            log.warning("in getProjectAction: rundeckInstance: "+rundeckInstance+" this.rundeckInstance"+this.rundeckInstance+" jobUser:"+jobUser+" this.getPassword():"+this.getPassword()+" this.getToken():"+this.getToken());
+            log.warning("getRundeckJobInstance: "+getDescriptor().getRundeckJobInstance(this.rundeckInstance, jobUser, this.getPassword(),this.getToken())+" jobId:"+jobId);
             return new RundeckJobProjectLinkerAction(rundeckInstance,getDescriptor().getRundeckJobInstance(this.rundeckInstance, jobUser, this.getPassword(),this.getToken()), jobId);
         } catch (Exception e) {
             log.warning(format("Unable to create rundeck job project linked action for '%s'. Exception: %s: %s", project.getDisplayName(),
