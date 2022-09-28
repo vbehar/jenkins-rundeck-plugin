@@ -149,7 +149,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
         RundeckNotifier notifier = new RundeckNotifier("Default", "1", null, null, "#deploy", false, true, null, null, null);
 
         notifier.getDescriptor().setRundeckBuilder(instanceBuilder);
-        notifier.getDescriptor().addRundeckInstance(RundeckInstance.builder().client(client).build());
+        notifier.getDescriptor().addRundeckInstance(RundeckInstance.builder().name("Default").client(client).build());
 
         FreeStyleProject project = createFreeStyleProject();
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
@@ -238,7 +238,7 @@ public class RundeckNotifierTest extends HudsonTestCase {
                 "nodes=nodename1,nodename2";
         RundeckNotifier notifier = new RundeckNotifier("Default", "1", optionString, null, null, false, true, null, null, null);
         notifier.getDescriptor().setRundeckBuilder(instanceBuilder);
-        notifier.getDescriptor().addRundeckInstance(RundeckInstance.builder().client(client).build());
+        notifier.getDescriptor().addRundeckInstance(RundeckInstance.builder().name("Default").client(client).build());
 
         FreeStyleProject project = createFreeStyleProject("my project name");
         project.getBuildersList().add(new MockBuilder(Result.SUCCESS));
