@@ -564,9 +564,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             initializeRundeckJobCache();
         }
 
-        public RundeckInstanceBuilder getRundeckBuilder() {
-            return rundeckBuilder;
-        }
+        // public RundeckInstanceBuilder getRundeckBuilder() {
+        //     return rundeckBuilder;
+        // }
 
         public void setRundeckBuilder(RundeckInstanceBuilder rundeckBuilder) {
             this.rundeckBuilder = rundeckBuilder;
