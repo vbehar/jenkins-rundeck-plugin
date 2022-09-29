@@ -552,7 +552,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
         private volatile RundeckJobCacheConfig rundeckJobCacheConfig = RundeckJobCacheConfig.initializeWithDefaultValues();
 
-        private volatile transient RundeckInstanceBuilder rundeckBuilder = null;
+        private volatile transient RundeckInstanceBuilder rundeckBuilder = new RundeckInstanceBuilder();
 
         public RundeckDescriptor() {
             super();
