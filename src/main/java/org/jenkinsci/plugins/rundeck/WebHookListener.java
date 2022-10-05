@@ -51,9 +51,16 @@ public class WebHookListener {
             for (AbstractProject<?, ?> job : Jenkins.get().getAllItems(AbstractProject.class)) {
                 RundeckTrigger trigger = job.getTrigger(RundeckTrigger.class);
                 if (trigger != null) {
-                    response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
-                    response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
-                    trigger.onNotification(executionSafeData);
+
+                    RundeckTrigger.RundeckTriggerCheckResult result = trigger.validateExecution(executionSafeData);
+                    if(result.isValid()){
+                        response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
+                        response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
+                        trigger.onNotification(executionSafeData);
+                    }else{
+                        response.getWriter().append("{\"Error:\" : \""+result.getMessage()+"\"}");
+                        response.setStatus(400);
+                    }
                 }
             }
         }catch (JsonSyntaxException e){

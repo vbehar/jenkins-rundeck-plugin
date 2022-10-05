@@ -8,10 +8,12 @@ import hudson.triggers.TriggerDescriptor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rundeck.client.ExecutionData;
+import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 import org.rundeck.client.api.model.Execution;
@@ -49,6 +51,41 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
                 job.scheduleBuild(new RundeckCause(execution));
             }
         }
+    }
+
+    public RundeckTriggerCheckResult validateExecution(ExecutionData execution){
+        RundeckNotifier.RundeckDescriptor descriptor = new RundeckNotifier.RundeckDescriptor();
+        Map<String, RundeckInstance> instances = descriptor.getRundeckInstances();
+
+        RundeckInstance rundeckSelectedInstance = null;
+        for (Map.Entry<String,RundeckInstance> instanceMap  : instances.entrySet()){
+            RundeckInstance rundeckInstance = instanceMap.getValue();
+            if(execution.getHref() != null && execution.getHref().toLowerCase().startsWith(rundeckInstance.getUrl().toLowerCase())){
+                rundeckSelectedInstance = rundeckInstance;
+            }
+        }
+
+        if(rundeckSelectedInstance != null){
+            return validateRundeckExecution(rundeckSelectedInstance, execution);
+        }
+
+        return new RundeckTriggerCheckResult("Rundeck instance not found", false);
+    }
+
+    private RundeckTriggerCheckResult validateRundeckExecution(RundeckInstance rundeckInstance, ExecutionData executionData){
+
+        RundeckClientManager rundeck = RundeckInstanceBuilder.createClient(rundeckInstance);
+
+        try {
+            Execution execution = rundeck.getExecution(executionData.getId());
+            if(execution!=null){
+                return new RundeckTriggerCheckResult("OK", true);
+            }
+        } catch (Exception e) {
+            return new RundeckTriggerCheckResult(e.getMessage(), false);
+        }
+
+        return new RundeckTriggerCheckResult("execution not found", false);
     }
 
     /**
@@ -163,6 +200,32 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
                 }
             }
             return result;
+        }
+    }
+
+    class RundeckTriggerCheckResult {
+        String message;
+        boolean valid;
+
+        public RundeckTriggerCheckResult(String message, boolean result) {
+            this.message = message;
+            this.valid = result;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public void setValid(boolean valid) {
+            this.valid = valid;
         }
     }
 
