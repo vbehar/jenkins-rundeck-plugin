@@ -28,7 +28,6 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         assertEquals(1, descriptor.getRundeckInstances().length);
 
-        //RundeckInstance instance = descriptor.getRundeckInstances().get("Default");
         RundeckInstance instance = null;
         for(RundeckInstance eachInstance: descriptor.getRundeckInstances()) {
             if(eachInstance.getName().equals("Default")) {
@@ -91,13 +90,8 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
     public void test_GivenADescriptorWithMultipleRundeckInstances_WhenSavingIt_ThenPersistedConfigContainsAllInstances() throws Exception {
         RundeckDescriptor descriptor = new RundeckDescriptor();
 
-        //Map<String, RundeckInstance> instances = new LinkedHashMap<String, RundeckInstance>();
-
         Secret password = Secret.fromString("password");
         Secret token = Secret.fromString("password");
-
-        //.put("first", RundeckInstance.builder().url("http://first").login("login", password).build());
-        //instances.put("second", RundeckInstance.builder().url("http://second").token(token).build());
         RundeckInstance[] instances = new RundeckInstance[2]; 
         instances[0] = RundeckInstance.builder().name("first").url("http://first").login("login", password).build();
         instances[1] = RundeckInstance.builder().name("second").url("http://second").token(token).build();

@@ -34,10 +34,6 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
     public RundeckInstance(final String name, final String url) {
         this.name = name;
         this.url = url;
-    //     this.apiVersion = apiVersion;
-    //     this.login = login;
-    //     this.token = token;
-    //     this.password = password;
     }
 
     public RundeckInstance() {
@@ -154,6 +150,7 @@ public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
                 ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
+                ", token=" + token +
                 ", sslHostnameVerifyAllowAll=" + sslHostnameVerifyAllowAll +
                 ", sslCertificateTrustAllowSelfSigned=" + sslCertificateTrustAllowSelfSigned +
                 ", systemProxyEnabled=" + systemProxyEnabled +
