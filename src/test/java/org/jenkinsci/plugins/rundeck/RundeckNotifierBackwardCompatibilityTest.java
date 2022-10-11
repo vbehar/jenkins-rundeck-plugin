@@ -186,9 +186,9 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
                 "      <jobId>ded72a13-8d82-48be-bec9-08a3870d5210</jobId>\n" +
                 "      <options></options>\n" +
                 "      <nodeFilters></nodeFilters>\n" +
-                "      <tagsList>\n" +
+                "      <tags>\n" +
                 "        <string>test</string>\n" +
-                "      </tagsList>\n" +
+                "      </tags>\n" +
                 "      <shouldWaitForRundeckJob>true</shouldWaitForRundeckJob>\n" +
                 "      <shouldFailTheBuild>true</shouldFailTheBuild>\n" +
                 "      <notifyOnAllStatus>false</notifyOnAllStatus>\n" +
