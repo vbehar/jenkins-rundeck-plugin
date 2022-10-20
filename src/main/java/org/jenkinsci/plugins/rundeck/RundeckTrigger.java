@@ -69,7 +69,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
             return validateRundeckExecution(rundeckSelectedInstance, execution);
         }
 
-        return new RundeckTriggerCheckResult("Rundeck instance not found", false);
+        return new RundeckTrigger.RundeckTriggerCheckResult("Rundeck instance not found", false);
     }
 
     private RundeckTriggerCheckResult validateRundeckExecution(RundeckInstance rundeckInstance, ExecutionData executionData){
@@ -79,7 +79,16 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         try {
             Execution execution = rundeck.getExecution(executionData.getId());
             if(execution!=null){
-                return new RundeckTriggerCheckResult("OK", true);
+
+                if(
+                   execution.getJob().getId().equals(executionData.getJob().getId()) &&
+                   execution.getDateStarted().unixtime == executionData.getDateStarted().unixtime
+                ){
+                    return new RundeckTriggerCheckResult("OK", true);
+                }else{
+                    return new RundeckTriggerCheckResult("Execution doesn't match with original values", false);
+                }
+
             }
         } catch (Exception e) {
             return new RundeckTriggerCheckResult(e.getMessage(), false);
@@ -203,7 +212,7 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         }
     }
 
-    class RundeckTriggerCheckResult {
+    static class RundeckTriggerCheckResult {
         String message;
         boolean valid;
 
