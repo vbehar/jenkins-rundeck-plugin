@@ -18,15 +18,25 @@ import static hudson.model.Run.ARTIFACTS
 
 class OptionProviderSpec extends Specification {
 
+    def originalHolder
+
+    def setup() {
+         originalHolder = Jenkins.HOLDER
+    }
+
+    def cleanup() {
+        Jenkins.HOLDER = originalHolder
+    }
 
     def "test option artifact without permissions"(){
 
         given:
 
         final Hudson jenkins = Mock()
-
         jenkins.getInstanceOrNull() >> jenkins
         jenkins.getInstance() >> jenkins
+
+        def originalHolder = Jenkins.HOLDER
 
         Jenkins.HOLDER = new Jenkins.JenkinsHolder() {
             Jenkins getInstance() {
@@ -48,10 +58,12 @@ class OptionProviderSpec extends Specification {
             getParameter("project")>>"test"
             getParameter("build")>>"lastSuccessful"
         }
-        def result = optionProvider.doArtifact(request,response )
+
+        optionProvider.doArtifact(request,response )
 
         then:
         1 * response.sendError(HttpServletResponse.SC_BAD_REQUEST, {message-> message == "anonymous is missing the Run/Artifacts permission" });
+
 
     }
 
@@ -155,4 +167,5 @@ class OptionProviderSpec extends Specification {
         1*writer.append({json-> json == "[]"})
 
     }
+
 }
