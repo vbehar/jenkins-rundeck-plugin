@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.AbstractProject;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -20,6 +19,8 @@ import net.sf.json.JSONArray;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import static hudson.model.Run.ARTIFACTS;
 
 /**
  * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
@@ -57,6 +58,13 @@ public class OptionProvider {
 
         Run<?, ?> build = findBuild(request.getParameter("build"), project);
         if (build == null) {
+            return;
+        }
+
+        try {
+            build.checkPermission(ARTIFACTS);
+        }catch (Exception e){
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
         }
 
@@ -147,7 +155,14 @@ public class OptionProvider {
         List<Option> options = new ArrayList<OptionProvider.Option>();
         RunList<?> builds = project.getBuilds();
         for (Run<?, ?> build : builds) {
+            try {
+                build.checkPermission(ARTIFACTS);
+            }catch (Exception e){
+                continue;
+            }
+
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
+
             if (artifact != null) {
                 String buildName = build.getDisplayName();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
@@ -161,6 +176,11 @@ public class OptionProvider {
         // add optional references to last / lastStable / lastSuccessful builds
         if (Boolean.valueOf(request.getParameter("includeLastStableBuild"))) {
             Run<?, ?> build = project.getLastStableBuild();
+            try {
+                build.checkPermission(ARTIFACTS);
+            }catch (Exception e){
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            }
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastStableBuild", buildArtifactUrl(build, artifact)));
@@ -168,6 +188,11 @@ public class OptionProvider {
         }
         if (Boolean.valueOf(request.getParameter("includeLastSuccessfulBuild"))) {
             Run<?, ?> build = project.getLastSuccessfulBuild();
+            try {
+                build.checkPermission(ARTIFACTS);
+            }catch (Exception e){
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            }
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastSuccessfulBuild", buildArtifactUrl(build, artifact)));
@@ -175,6 +200,11 @@ public class OptionProvider {
         }
         if (Boolean.valueOf(request.getParameter("includeLastBuild"))) {
             Run<?, ?> build = project.getLastBuild();
+            try {
+                build.checkPermission(ARTIFACTS);
+            }catch (Exception e){
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            }
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
             if (build != null && artifact != null) {
                 options.add(0, new Option("lastBuild", buildArtifactUrl(build, artifact)));
