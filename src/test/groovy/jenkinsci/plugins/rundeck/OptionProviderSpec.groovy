@@ -22,6 +22,7 @@ class OptionProviderSpec extends Specification {
 
     def setup() {
          originalHolder = Jenkins.HOLDER
+        System.properties['hudson.security.ArtifactsPermission'] = "true"
     }
 
     def cleanup() {
