@@ -30,11 +30,15 @@ import org.rundeck.client.api.model.JobItem;
  */
 public class WebHookListener {
 
+    static final String TOKEN = "rundeckTriggerToken";
+
     @RequirePOST
     public void doIndex(StaplerRequest request, StaplerResponse response) {
 
         // read request body / parse Rundeck execution
         try{
+
+            String token = request.getHeader(TOKEN);
 
             Gson gson = new Gson();
             Reader reader = new InputStreamReader(request.getInputStream(), "UTF-8");
@@ -51,15 +55,16 @@ public class WebHookListener {
             for (AbstractProject<?, ?> job : Jenkins.get().getAllItems(AbstractProject.class)) {
                 RundeckTrigger trigger = job.getTrigger(RundeckTrigger.class);
                 if (trigger != null) {
-
-                    RundeckTrigger.RundeckTriggerCheckResult result = trigger.validateExecution(executionSafeData);
-                    if(result.isValid()){
-                        response.getWriter().append("[\"Triggering:\" : \""+job.getFullDisplayName()+"\"\n");
-                        response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName()+"\"]\n");
-                        trigger.onNotification(executionSafeData);
-                    }else{
-                        response.getWriter().append("{\"Error:\" : \""+result.getMessage()+"\"}");
-                        response.setStatus(400);
+                    if (trigger.shouldScheduleBuild(executionSafeData, token)) {
+                        RundeckTrigger.RundeckTriggerCheckResult result = trigger.validateExecution(executionSafeData);
+                        if (result.isValid()) {
+                            response.getWriter().append("[\"Triggering:\" : \"" + job.getFullDisplayName() + "\"\n");
+                            response.getWriter().append("\"Execution\" : \"" + execution.getJob().getName() + "\"]\n");
+                            trigger.onNotification(executionSafeData);
+                        } else {
+                            response.getWriter().append("{\"Error:\" : \"" + result.getMessage() + "\"}");
+                            response.setStatus(400);
+                        }
                     }
                 }
             }

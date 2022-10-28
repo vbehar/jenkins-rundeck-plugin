@@ -5,10 +5,11 @@ import hudson.model.Item;
 import hudson.model.AbstractProject;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
+
+import hudson.util.ListBoxModel;
+import hudson.util.Secret;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -32,12 +33,16 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     private final List<String> executionStatuses;
 
+    private final Secret token;
+
 
     @DataBoundConstructor
-    public RundeckTrigger(Boolean filterJobs, List<String> jobsIdentifiers, List<String> executionStatuses) {
+    public RundeckTrigger(Boolean filterJobs, List<String> jobsIdentifiers, List<String> executionStatuses, Secret token) {
         this.filterJobs = filterJobs != null ? filterJobs : false;
         this.jobsIdentifiers = jobsIdentifiers != null ? jobsIdentifiers : new ArrayList<String>();
         this.executionStatuses = executionStatuses != null ? executionStatuses : Arrays.asList("SUCCEEDED");
+        this.token = this.filterJobs ? null:token;
+
     }
 
     /**
@@ -46,10 +51,8 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param execution at the origin of the notification
      */
     public void onNotification(ExecutionData execution) {
-        if (shouldScheduleBuild(execution)) {
-            if(job != null){
-                job.scheduleBuild(new RundeckCause(execution));
-            }
+        if(job != null){
+            job.scheduleBuild(new RundeckCause(execution));
         }
     }
 
@@ -103,12 +106,21 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
-    private boolean shouldScheduleBuild(ExecutionData execution) {
-        if (!executionStatuses.contains(execution.getStatus().toUpperCase())) {
+    public boolean shouldScheduleBuild(ExecutionData execution, String requestToken) {
+        if (!filterJobs) {
+            if(requestToken == null){
+                return false;
+            }
+
+            if(this.token != null && this.token.getPlainText().equals(requestToken)){
+                return true;
+            }
+
             return false;
         }
-        if (!filterJobs) {
-            return true;
+
+        if (!executionStatuses.contains(execution.getStatus().toUpperCase())) {
+            return false;
         }
         for (String jobIdentifier : jobsIdentifiers) {
             if (identifierMatchesJob(jobIdentifier, execution.getJob())) {
@@ -148,6 +160,25 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         return false;
     }
 
+    public Boolean isTokenConfigured(){
+        if(token!=null){
+            return true;
+        }
+        return false;
+    }
+
+
+    public String getRandomValue() {
+        if(token==null){
+            UUID uuid = UUID.randomUUID();
+            String uuidAsString = uuid.toString();
+            return uuidAsString;
+        }else{
+            return token.getPlainText();
+        }
+    }
+
+
     public Boolean getFilterJobs() {
         return filterJobs;
     }
@@ -158,6 +189,10 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     public List<String> getExecutionStatuses() {
         return executionStatuses;
+    }
+
+    public Secret getToken() {
+        return token;
     }
 
     @Override
@@ -175,9 +210,21 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
         @Override
         public Trigger<?> newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+            Secret tokenSecret=null;
+            try{
+                String token = formData.getJSONObject("filterJobs").getString("token");
+                if(token!=null){
+                    tokenSecret = Secret.fromString(formData.getJSONObject("filterJobs").getString("token"));
+                }
+            }catch(Exception e){
+                tokenSecret = null;
+            }
+
             return new RundeckTrigger(formData.getJSONObject("filterJobs").getBoolean("value"),
                                       bindJSONToList(formData.getJSONObject("filterJobs").get("jobsIdentifiers")),
-                                      bindJSONToList(formData.get("executionStatuses")));
+                                      bindJSONToList(formData.get("executionStatuses")),
+                                      tokenSecret
+                    );
         }
 
         @Override
@@ -188,6 +235,12 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
         @Override
         public String getDisplayName() {
             return "Build when we receive a notification from Rundeck";
+        }
+
+        public String getDefaultRandomValue() {
+            UUID uuid = UUID.randomUUID();
+            String uuidAsString = uuid.toString();
+            return uuidAsString;
         }
 
         /**
@@ -237,5 +290,6 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
             this.valid = valid;
         }
     }
+
 
 }
