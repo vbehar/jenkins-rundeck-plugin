@@ -6,6 +6,9 @@ import hudson.model.AbstractProject;
 import hudson.triggers.Trigger;
 import hudson.triggers.TriggerDescriptor;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.*;
 
 import hudson.util.ListBoxModel;
@@ -106,13 +109,13 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
      * @param execution at the origin of the notification
      * @return true if we should schedule a new build, false otherwise
      */
-    public boolean shouldScheduleBuild(ExecutionData execution, String requestToken) {
+    public boolean shouldScheduleBuild(ExecutionData execution, String requestToken) throws UnsupportedEncodingException {
         if (!filterJobs) {
             if(requestToken == null){
                 return false;
             }
 
-            if(this.token != null && this.token.getPlainText().equals(requestToken)){
+            if(this.token != null &&  MessageDigest.isEqual(this.token.getPlainText().getBytes(StandardCharsets.UTF_8), requestToken.getBytes(StandardCharsets.UTF_8))){
                 return true;
             }
 
