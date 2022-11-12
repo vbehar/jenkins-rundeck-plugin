@@ -1,6 +1,6 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.AbstractProject;
+import hudson.Functions;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -20,6 +20,8 @@ import net.sf.json.JSONArray;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import static hudson.model.Run.ARTIFACTS;
 
 /**
  * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
@@ -57,6 +59,13 @@ public class OptionProvider {
 
         Run<?, ?> build = findBuild(request.getParameter("build"), project);
         if (build == null) {
+            return;
+        }
+
+        try {
+            this.checkArtifactPermissions(build);
+        }catch (Exception e){
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
             return;
         }
 
@@ -148,6 +157,7 @@ public class OptionProvider {
         RunList<?> builds = project.getBuilds();
         for (Run<?, ?> build : builds) {
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
+
             if (artifact != null) {
                 String buildName = build.getDisplayName();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
@@ -248,6 +258,12 @@ public class OptionProvider {
             return null;
         }
 
+        try{
+            this.checkArtifactPermissions(build);
+        }catch (Exception e){
+            return null;
+        }
+
         for (Artifact artifact : build.getArtifacts()) {
             if (StringUtils.equals(artifactName, artifact.getFileName())) {
                 return artifact;
@@ -288,6 +304,12 @@ public class OptionProvider {
 
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().append(json);
+    }
+
+    private void checkArtifactPermissions(Run<?, ?> build){
+        if(Functions.isArtifactsPermissionEnabled()){
+            build.checkPermission(ARTIFACTS);
+        }
     }
 
     /**
