@@ -26,9 +26,15 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         assertNotNull(descriptor.getRundeckInstances());
 
-        assertEquals(1, descriptor.getRundeckInstances().size());
+        assertEquals(1, descriptor.getRundeckInstances().length);
 
-        RundeckInstance instance = descriptor.getRundeckInstances().get("Default");
+        RundeckInstance instance = null;
+        for(RundeckInstance eachInstance: descriptor.getRundeckInstances()) {
+            if(eachInstance.getName().equals("Default")) {
+                instance = eachInstance;
+                break;
+            }
+        }
 
         assertNotNull(instance);
         assertEquals("http://rundeck.org", instance.getUrl());
@@ -57,20 +63,18 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
-                "  <rundeckInstances class=\"linked-hash-map\">\n" +
-                "    <entry>\n" +
-                "      <string>Default</string>\n" +
-                "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "        <url>http://rundeck.org</url>\n" +
-                "        <apiVersion>9</apiVersion>\n" +
-                "        <login>login</login>\n" +
-                "        <password>"+password.getEncryptedValue()+"</password>\n" +
-                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
-                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
-                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
-                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
-                "      </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "    </entry>\n" +
+                "  <rundeckInstances>\n" +
+                "    <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
+                "      <name>Default</name>\n" +
+                "      <url>http://rundeck.org</url>\n" +
+                "      <apiVersion>9</apiVersion>\n" +
+                "      <login>login</login>\n" +
+                "      <password>"+password.getEncryptedValue()+"</password>\n" +
+                "      <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "      <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "      <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "      <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
+                "    </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "  </rundeckInstances>\n" +
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +
@@ -86,14 +90,11 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
     public void test_GivenADescriptorWithMultipleRundeckInstances_WhenSavingIt_ThenPersistedConfigContainsAllInstances() throws Exception {
         RundeckDescriptor descriptor = new RundeckDescriptor();
 
-        Map<String, RundeckInstance> instances = new LinkedHashMap<String, RundeckInstance>();
-
         Secret password = Secret.fromString("password");
         Secret token = Secret.fromString("password");
-
-        instances.put("first", RundeckInstance.builder().url("http://first").login("login", password).build());
-        instances.put("second", RundeckInstance.builder().url("http://second").token(token).build());
-
+        RundeckInstance[] instances = new RundeckInstance[2]; 
+        instances[0] = RundeckInstance.builder().name("first").url("http://first").login("login", password).build();
+        instances[1] = RundeckInstance.builder().name("second").url("http://second").token(token).build();
         descriptor.setRundeckInstances(instances);
 
         descriptor.save();
@@ -102,32 +103,28 @@ public class RundeckNotifierBackwardCompatibilityTest extends HudsonTestCase {
 
         final String expected = "<?xml version='1.1' encoding='UTF-8'?>\n" +
                 "<org.jenkinsci.plugins.rundeck.RundeckNotifier_-RundeckDescriptor>\n" +
-                "  <rundeckInstances class=\"linked-hash-map\">\n" +
-                "    <entry>\n" +
-                "      <string>first</string>\n" +
-                "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "        <url>http://first</url>\n" +
-                "        <apiVersion>32</apiVersion>\n" +
-                "        <login>login</login>\n" +
-                "        <password>"+password.getEncryptedValue()+"</password>\n" +
-                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
-                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
-                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
-                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
-                "      </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "    </entry>\n" +
-                "    <entry>\n" +
-                "      <string>second</string>\n" +
-                "      <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "        <url>http://second</url>\n" +
-                "        <apiVersion>32</apiVersion>\n" +
-                "        <token>"+token.getEncryptedValue()+"</token>\n" +
-                "        <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
-                "        <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
-                "        <systemProxyEnabled>false</systemProxyEnabled>\n" +
-                "        <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
-                "      </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
-                "    </entry>\n" +
+                "  <rundeckInstances>\n" +
+                "    <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
+                "      <name>first</name>\n" +
+                "      <url>http://first</url>\n" +
+                "      <apiVersion>32</apiVersion>\n" +
+                "      <login>login</login>\n" +
+                "      <password>"+password.getEncryptedValue()+"</password>\n" +
+                "      <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "      <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "      <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "      <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
+                "    </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
+                "    <org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
+                "      <name>second</name>\n" +
+                "      <url>http://second</url>\n" +
+                "      <apiVersion>32</apiVersion>\n" +
+                "      <token>"+token.getEncryptedValue()+"</token>\n" +
+                "      <sslHostnameVerifyAllowAll>false</sslHostnameVerifyAllowAll>\n" +
+                "      <sslCertificateTrustAllowSelfSigned>false</sslCertificateTrustAllowSelfSigned>\n" +
+                "      <systemProxyEnabled>false</systemProxyEnabled>\n" +
+                "      <useIntermediateStreamFile>false</useIntermediateStreamFile>\n" +
+                "    </org.jenkinsci.plugins.rundeck.RundeckInstance>\n" +
                 "  </rundeckInstances>\n" +
                 "  <rundeckJobCacheConfig>\n" +
                 "    <enabled>false</enabled>\n" +

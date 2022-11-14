@@ -5,6 +5,7 @@ import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 import org.jenkinsci.plugins.rundeck.client.RundeckManager;
 
 public class RundeckInstanceBuilder {
+    private String name;
     private String url;
     private int apiVersion=RundeckClientManager.API_VERSION;
     private String login;
@@ -24,6 +25,9 @@ public class RundeckInstanceBuilder {
     }
 
     RundeckInstanceBuilder client(RundeckManager client){
+        if(client.getRundeckInstance().getName()!=null) {
+            this.name = client.getRundeckInstance().getName();
+        }
         this.url = client.getRundeckInstance().getUrl();
          if(client.getRundeckInstance().getPassword()!=null){
             this.password = client.getRundeckInstance().getPassword();
@@ -44,6 +48,9 @@ public class RundeckInstanceBuilder {
 
     RundeckInstanceBuilder client(RundeckInstance client){
         this.url = client.getUrl();
+        if(client.getName()!=null) {
+            this.name = client.getName();
+        }
         if(client.getPassword()!=null){
             this.password = client.getPassword();
         }
@@ -76,9 +83,13 @@ public class RundeckInstanceBuilder {
         return this;
     }
 
+    RundeckInstanceBuilder name(String name){
+        this.name = name;
+        return this;
+    }
+
     public RundeckInstance build() {
-        RundeckInstance client = new RundeckInstance();
-        client.setUrl(this.url);
+        RundeckInstance client = new RundeckInstance(this.name, this.url);
         client.setApiVersion(this.apiVersion);
         client.setLogin(this.login);
         client.setPassword(this.password);
@@ -96,7 +107,8 @@ public class RundeckInstanceBuilder {
     @Override
     public String toString() {
         return "RundeckInstanceBuilder{" +
-                "url='" + url + '\'' +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +

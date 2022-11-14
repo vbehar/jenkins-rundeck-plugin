@@ -61,12 +61,10 @@ public class RundeckTrigger extends Trigger<AbstractProject<?, ?>> {
 
     public RundeckTriggerCheckResult validateExecution(ExecutionData execution){
         RundeckNotifier.RundeckDescriptor descriptor = new RundeckNotifier.RundeckDescriptor();
-        Map<String, RundeckInstance> instances = descriptor.getRundeckInstances();
 
         RundeckInstance rundeckSelectedInstance = null;
-        for (Map.Entry<String,RundeckInstance> instanceMap  : instances.entrySet()){
-            RundeckInstance rundeckInstance = instanceMap.getValue();
-            if(execution.getHref() != null && execution.getHref().toLowerCase().startsWith(rundeckInstance.getUrl().toLowerCase())){
+        for(RundeckInstance rundeckInstance : descriptor.getRundeckInstances()) {
+           if(execution.getHref() != null && execution.getHref().toLowerCase().startsWith(rundeckInstance.getUrl().toLowerCase())){
                 rundeckSelectedInstance = rundeckInstance;
             }
         }

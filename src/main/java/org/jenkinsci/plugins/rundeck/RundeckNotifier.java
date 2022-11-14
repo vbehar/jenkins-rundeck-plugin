@@ -14,6 +14,7 @@ import hudson.tasks.Publisher;
 import hudson.util.FormValidation;
 import hudson.util.Secret;
 import hudson.util.XStream2;
+import hudson.util.CopyOnWriteList;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONArray;
@@ -543,14 +544,13 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         @Deprecated
         private transient RundeckInstance rundeckInstance;
 
-        @CopyOnWrite
-        private volatile Map<String, RundeckInstance> rundeckInstances = new LinkedHashMap<>();
+        private volatile CopyOnWriteList<RundeckInstance> rundeckInstances = new CopyOnWriteList<RundeckInstance>();
 
         private volatile transient RundeckJobCache rundeckJobCache = new DummyRundeckJobCache();
 
         private volatile RundeckJobCacheConfig rundeckJobCacheConfig = RundeckJobCacheConfig.initializeWithDefaultValues();
 
-        private volatile transient RundeckInstanceBuilder rundeckBuilder = null;
+        private volatile transient RundeckInstanceBuilder rundeckBuilder = new RundeckInstanceBuilder();
 
         public RundeckDescriptor() {
             super();
@@ -562,9 +562,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             initializeRundeckJobCache();
         }
 
-        public RundeckInstanceBuilder getRundeckBuilder() {
-            return rundeckBuilder;
-        }
+        // public RundeckInstanceBuilder getRundeckBuilder() {
+        //     return rundeckBuilder;
+        // }
 
         public void setRundeckBuilder(RundeckInstanceBuilder rundeckBuilder) {
             this.rundeckBuilder = rundeckBuilder;
@@ -584,9 +584,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         // support backward compatibility
         protected Object readResolve() {
             if (rundeckInstance != null) {
-                Map<String, RundeckInstance> instance = new LinkedHashMap<String, RundeckInstance>();
-                instance.put("Default", RundeckInstance.builder().client(rundeckInstance).build());
-                this.setRundeckInstances(instance);
+                RundeckInstance instance = RundeckInstance.builder().client(rundeckInstance).build();
+                instance.setName("Default");
+                RundeckInstance[] rundeckArr = new RundeckInstance[1];
+                rundeckArr[0] = instance;
+                this.setRundeckInstances(rundeckArr);
             }
             return this;
         }
@@ -604,44 +606,9 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
 
-            JSONArray instances = json.optJSONArray("inst");
-
-            if (instances == null) {
-                instances = new JSONArray();
-
-                if (json.optJSONObject("inst") != null) {
-                    instances.add(json.getJSONObject("inst"));
-                }
-            }
-
-            Map<String, RundeckInstance> newInstances = new LinkedHashMap<String, RundeckInstance>(instances.size());
-
-            try {
-                for (int i=0; i< instances.size(); i++) {
-                    JSONObject instance = instances.getJSONObject(i);
-
-                    if (!StringUtils.isEmpty(instance.getString("name"))) {
-                        RundeckInstanceBuilder builder = RundeckInstance.builder();
-                        builder.url(instance.getString("url"));
-                        if (instance.get("authtoken") != null && !"".equals(instance.getString("authtoken"))) {
-                            builder.token(Secret.fromString(instance.getString("authtoken")) );
-                        } else {
-                            builder.login(instance.getString("login"), Secret.fromString(instance.getString("password")));
-                        }
-
-                        if (instance.optInt("apiversion") > 0) {
-                            builder.version(instance.getInt("apiversion"));
-                        }else{
-                            builder.version(RundeckClientManager.API_VERSION);
-                        }
-                        newInstances.put(instance.getString("name"), builder.build());
-                    }
-                }
-            } catch (IllegalArgumentException e) {
-                log.warning(format("Unable to deserialize Rundeck instances fom JSON. %s: %s", e.getClass().getSimpleName(), e.getMessage()));
-            }
-
-            this.setRundeckInstances(newInstances);
+            CopyOnWriteList<RundeckInstance> newInstances = new CopyOnWriteList<RundeckInstance>();
+            newInstances.replaceBy(req.bindJSONToList(RundeckInstance.class, json.get("rundeckInstances")));
+            this.setRundeckInstances(newInstances.toArray(new RundeckInstance[0]));
             configureRundeckJobCache(json);
 
             save();
@@ -678,6 +645,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
                             Util.fixEmpty(password.getPlainText()),
                             Util.fixEmpty(token.getPlainText())));
                 } catch (Exception e) {
+
                     throw new FormException("Failed to get job with the identifier : " + jobIdentifier, e, "jobIdentifier");
                 }
                 if (job == null) {
@@ -714,48 +682,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
             rundeckJobCache.invalidate();
             return FormValidation.ok("Done");
-        }
-
-        @SuppressWarnings("unused")
-        @RequirePOST
-        public FormValidation doTestConnection(@QueryParameter("rundeck.url") final String url,
-                                               @QueryParameter("rundeck.login") final String login,
-                                               @QueryParameter("rundeck.password") final Secret password,
-                                               @QueryParameter("rundeck.authtoken") final Secret token,
-                                               @QueryParameter(value = "rundeck.apiversion", fixEmpty = true) final Integer apiversion) {
-
-
-            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
-
-            RundeckInstanceBuilder builder = new RundeckInstanceBuilder().url(url);
-
-            if (null != apiversion && apiversion > 0) {
-                builder.version(apiversion);
-            } else {
-                builder.version(RundeckClientManager.API_VERSION);
-            }
-            try {
-                if (!token.getPlainText().isEmpty()) {
-                    builder.token(token);
-                } else {
-                    builder.login(login, password);
-                }
-            } catch (IllegalArgumentException e) {
-                return FormValidation.error("Rundeck configuration is not valid ! %s", e.getMessage());
-            }
-            RundeckInstance instance = builder.build();
-            RundeckClientManager rundeck = RundeckInstanceBuilder.createClient(instance);
-            try {
-                rundeck.ping();
-            } catch (IOException e) {
-                return FormValidation.error("We couldn't find a live Rundeck instance at %s", rundeck.getRundeckInstance().getUrl());
-            }
-            try {
-                rundeck.testAuth();
-            } catch (IOException e) {
-                return FormValidation.error("Error authenticating Rundeck !",  rundeck.getRundeckInstance().getUrl());
-            }
-            return FormValidation.ok("Your Rundeck instance is alive, and your credentials are valid !");
         }
 
         /**
@@ -879,7 +805,6 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             }
 
             JobItem job = null;
-
             Matcher matcher = JOB_REFERENCE_PATTERN.matcher(jobIdentifier);
             if (matcher.find() && matcher.groupCount() == 3) {
                 String project = matcher.group(1);
@@ -910,8 +835,12 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             return "Rundeck";
         }
 
-        public RundeckInstance getRundeckInstance(String key) {
-            return rundeckInstances.get(key);
+        public RundeckInstance getRundeckInstance(String name) {
+            for(RundeckInstance eachInstance: rundeckInstances) {
+                if(eachInstance.getName().equals(name))
+                    return eachInstance; 
+            }
+            return null;
         }
 
 
@@ -925,9 +854,11 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
              */
         public RundeckManager getRundeckJobInstance(String rundeckInstanceName,
                                                    String jobUser, String jobPassword, String jobToken) {
-
-
-            RundeckInstance instance = rundeckInstances.get(rundeckInstanceName);
+            RundeckInstance instance = null;
+            for(RundeckInstance eachInstance: rundeckInstances) {
+                if(eachInstance.getName().equals(rundeckInstanceName))
+                    instance = eachInstance; 
+            }
 
             if(instance==null){
                 return null;
@@ -939,7 +870,7 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
             }
 
             if(rundeckBuilder.getClient()==null){
-                client = RundeckInstanceBuilder.createClient(instance);
+                client = rundeckBuilder.createClient(instance);
             }else{
                 client = rundeckBuilder.getClient();
             }
@@ -974,19 +905,17 @@ public class RundeckNotifier extends Notifier implements SimpleBuildStep {
 
             return client;
         }
-
-        public void addRundeckInstance(String key, RundeckInstance instance) {
-            Map<String, RundeckInstance> instances = new LinkedHashMap<String, RundeckInstance>(this.rundeckInstances);
-            instances.put(key, instance);
-            this.setRundeckInstances(instances);
+        
+        public void addRundeckInstance(RundeckInstance instance) {
+            rundeckInstances.add(instance);
         }
 
-        public Map<String, RundeckInstance> getRundeckInstances() {
-            return rundeckInstances;
+        public RundeckInstance[] getRundeckInstances() {
+            return rundeckInstances.toArray(new RundeckInstance[0]);
         }
 
-        public void setRundeckInstances(Map<String, RundeckInstance> instances) {
-            this.rundeckInstances = instances;
+        public void setRundeckInstances(RundeckInstance[] instances) {
+            rundeckInstances.replaceBy(instances);
         }
 
         public RundeckJobCacheConfig getRundeckJobCacheConfig() {

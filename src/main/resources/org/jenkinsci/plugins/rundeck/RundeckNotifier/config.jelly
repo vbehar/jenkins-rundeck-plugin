@@ -12,7 +12,7 @@
     <f:entry title="Rundeck Instance: ">
       <select class="setting-input" name="rundeckInstance">
         <j:forEach var="inst" items="${instances}">
-          <f:option value="${inst.key}" selected="${inst.key.equals(instance.rundeckInstance)}">${inst.key}
+          <f:option value="${inst.getName()}" selected="${inst.getName().equals(instance.rundeckInstance)}">${inst.getName()}
           </f:option>
         </j:forEach>
       </select>

@@ -51,7 +51,7 @@ public class RundeckClientManager implements RundeckManager {
         if(client == null){
             RundeckClient.Builder builder = RundeckClient.builder().baseUrl(rundeckInstance.getUrl());
 
-            if(rundeckInstance.getToken()!=null){
+            if(rundeckInstance.getToken()!=null && !rundeckInstance.getToken().getPlainText().isEmpty()){
                 builder.tokenAuth(rundeckInstance.getToken().getPlainText());
             }
             if(rundeckInstance.getLogin() != null && rundeckInstance.getPassword()!=null){

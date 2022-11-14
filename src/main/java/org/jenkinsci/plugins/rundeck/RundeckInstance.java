@@ -1,10 +1,25 @@
 package org.jenkinsci.plugins.rundeck;
 
 import hudson.util.Secret;
+import hudson.Util;
+import hudson.Extension;
+import jenkins.model.Jenkins;
+import hudson.model.Descriptor;
+import hudson.model.AbstractDescribableImpl;
+import hudson.util.FormValidation;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.jenkinsci.plugins.rundeck.client.RundeckClientManager;
 
-public class RundeckInstance {
+import org.rundeck.client.api.LoginFailed;
 
+import java.io.IOException;
+
+public class RundeckInstance extends AbstractDescribableImpl<RundeckInstance>{
+
+    private String name;
     private String url;
     private Integer apiVersion = RundeckClientManager.API_VERSION;
     private String login;
@@ -15,9 +30,26 @@ public class RundeckInstance {
     private boolean systemProxyEnabled;
     private boolean useIntermediateStreamFile;
 
+    @DataBoundConstructor
+    public RundeckInstance(final String name, final String url) {
+        this.name = name;
+        this.url = url;
+    }
+
+    public RundeckInstance() {
+        
+    }
 
     public static RundeckInstanceBuilder builder() {
         return new RundeckInstanceBuilder();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getUrl() {
@@ -32,14 +64,17 @@ public class RundeckInstance {
         return apiVersion;
     }
 
+    @DataBoundSetter
     public void setApiVersion(int apiVersion) {
-        this.apiVersion = apiVersion;
+        if(apiVersion > 0)
+            this.apiVersion = apiVersion; 
     }
 
     public String getLogin() {
         return login;
     }
 
+    @DataBoundSetter
     public void setLogin(String login) {
         this.login = login;
     }
@@ -59,6 +94,7 @@ public class RundeckInstance {
         return null;
     }
 
+    @DataBoundSetter
     public void setToken(Secret token) {
         this.token = token;
     }
@@ -70,12 +106,9 @@ public class RundeckInstance {
         return null;
     }
 
+    @DataBoundSetter
     public void setPassword(Secret password) {
         this.password = password;
-    }
-
-    public void setApiVersion(Integer apiVersion) {
-        this.apiVersion = apiVersion;
     }
 
     public boolean isSslHostnameVerifyAllowAll() {
@@ -113,7 +146,8 @@ public class RundeckInstance {
     @Override
     public String toString() {
         return "RundeckInstance{" +
-                "url='" + url + '\'' +
+                "name='" + name + '\'' +
+                ", url='" + url + '\'' +
                 ", apiVersion=" + apiVersion +
                 ", login='" + login + '\'' +
                 ", token=" + token +
@@ -122,5 +156,53 @@ public class RundeckInstance {
                 ", systemProxyEnabled=" + systemProxyEnabled +
                 ", useIntermediateStreamFile=" + useIntermediateStreamFile +
                 '}';
+    }
+    @Extension
+    public static class DescriptorImpl extends Descriptor<RundeckInstance> {
+        public String getDisplayName() { return ""; }
+
+        @SuppressWarnings("unused")
+        @RequirePOST
+        public FormValidation doTestConnection(@QueryParameter("url") final String url,
+                                               @QueryParameter("login") final String login,
+                                               @QueryParameter("password") final Secret password,
+                                               @QueryParameter("token") final Secret token,
+                                               @QueryParameter(value = "apiVersion", fixEmpty = true) final Integer apiVersion) {
+
+
+            Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+
+            RundeckInstanceBuilder builder = new RundeckInstanceBuilder().url(url);
+
+            if (null != apiVersion && apiVersion > 0) {
+                builder.version(apiVersion);
+            } else {
+                builder.version(RundeckClientManager.API_VERSION);
+            }
+            try {
+                if (!token.getPlainText().isEmpty()) {
+                    builder.token(token);
+                } else {
+                    builder.login(login, password);
+                }
+            } catch (IllegalArgumentException e) {
+                return FormValidation.error("Rundeck configuration is not valid ! %s", e.getMessage());
+            }
+            RundeckInstance instance = builder.build();
+            RundeckClientManager rundeck = RundeckInstanceBuilder.createClient(instance);
+            try {
+                rundeck.ping();
+            }catch (LoginFailed e) {
+                return FormValidation.error("Error: %s", e.getMessage());
+            }catch (Exception e) {
+                return FormValidation.error("We couldn't find a live Rundeck instance at %s error: %s", rundeck.getRundeckInstance().getUrl(), e.getMessage());
+            }
+            try {
+                rundeck.testAuth();
+            } catch (Exception e) {
+                return FormValidation.error("Error: " + e.getMessage() + " authenticating Rundeck !",  rundeck.getRundeckInstance().getUrl());
+            }
+            return FormValidation.ok("Your Rundeck instance is alive, and your credentials are valid !");
+        }
     }
 }

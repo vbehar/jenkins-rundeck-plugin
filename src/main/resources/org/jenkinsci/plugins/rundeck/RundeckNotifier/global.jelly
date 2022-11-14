@@ -13,35 +13,7 @@
       </r:blockWrapper>
     </f:entry>
     <f:entry title="Instances" description="List of Rundeck instances">
-      <f:repeatable var="inst" items="${descriptor.rundeckInstances}" add="Add Rundeck">
-        <r:blockWrapper>
-            <f:entry title="Name">
-              <f:textbox name="rundeck.name" value="${inst.getKey()}" clazz="required" />
-            </f:entry>
-            <f:entry title="URL" help="/plugin/rundeck/help-globalConfig-url.html">
-              <f:textbox name="rundeck.url" value="${inst.getValue().getUrl()}" clazz="required" />
-            </f:entry>
-            <f:entry title="Login" help="/plugin/rundeck/help-globalConfig-login.html">
-              <f:textbox name="rundeck.login" value="${inst.getValue().getLogin()}" />
-            </f:entry>
-            <f:entry title="Password" help="/plugin/rundeck/help-globalConfig-password.html">
-              <f:password name="rundeck.password" value="${inst.getValue().getPassword()}" />
-            </f:entry>
-            <f:entry title="Auth Token" help="/plugin/rundeck/help-globalConfig-authtoken.html">
-              <f:password name="rundeck.authtoken" value="${inst.getValue().getToken()}" />
-            </f:entry>
-            <f:entry title="API Version" help="/plugin/rundeck/help-globalConfig-apiversion.html">
-              <f:textbox name="rundeck.apiversion" value="${descriptor.getApiVersion(inst.getValue())}" />
-            </f:entry>
-            <f:validateButton title="Test Connection" progress="Testing..." method="testConnection"
-              with="rundeck.url,rundeck.login,rundeck.password,rundeck.authtoken,rundeck.apiversion" />
-            <f:entry title="">
-              <div align="right">
-                <f:repeatableDeleteButton value="Delete Rundeck"/>
-              </div>
-            </f:entry>
-        </r:blockWrapper>
-      </f:repeatable>
+      <f:repeatableProperty add="Add Rundeck" field="rundeckInstances"/>
     </f:entry>
   </f:section>
 </j:jelly>
