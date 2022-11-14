@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>rundeck</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>3.6.13</version>
     <packaging>hpi</packaging>
 
     <name>Jenkins Rundeck plugin</name>
@@ -19,7 +19,7 @@
         <url>https://github.com/${gitHubRepo}</url>
         <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
-      <tag>${scmTag}</tag>
+      <tag>rundeck-3.6.13</tag>
   </scm>
 
     <properties>
