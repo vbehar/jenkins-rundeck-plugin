@@ -1,33 +1,40 @@
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:r="/lib/rundeck">
   <f:nested>
-    <table style="width:100%">
-      <f:radioBlock title="Build for a notification from any RunDeck job" name="filterJobs"
-                    value="false" checked="${!instance.getFilterJobs()}"
-                    help="${descriptor.getHelpFile('noFilterJobs')}" />
-      <f:radioBlock title="Build only for a notification from one of the following RunDeck jobs :" name="filterJobs"
-                    value="true" checked="${instance.getFilterJobs()}"
+    <r:blockWrapper>
+
+      <f:radioBlock title="Build only for a notification from one of the following Rundeck jobs :" name="filterJobs"
+                    value="true" checked="${!instance.isTokenConfigured()}"
                     help="${descriptor.getHelpFile('filterJobs')}">
         <f:nested>
           <f:repeatable items="${instance.jobsIdentifiers}" var="jobsIdentifiers" minimum="1" noAddButton="true">
-            <table style="width:100%">
-              <f:entry title="RunDeck Job Identifier : "
+            <r:blockWrapper>
+              <f:entry title="Rundeck Job Identifier : "
                        help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/identifier">
                 <f:textbox name="value" value="${jobsIdentifiers}" />
                 <div align="right">
-                  <input type="button" value="Add a RunDeck Job Identifier" class="repeatable-add show-if-last" />
+                  <input type="button" value="Add a Rundeck Job Identifier" class="repeatable-add show-if-last" />
                   <f:repeatableDeleteButton />
                 </div>
               </f:entry>
-            </table>
+            </r:blockWrapper>
           </f:repeatable>
         </f:nested>
       </f:radioBlock>
-      <f:entry title="Build when the RunDeck Execution Status is :"
+      <f:radioBlock title="Build for a notification from any Rundeck job" name="filterJobs"
+                  value="false" checked="${instance.isTokenConfigured()}"
+                  help="${descriptor.getHelpFile('noFilterJobs')}" >
+
+        <f:entry title="Webhook token">
+          <f:textbox name="token"  value="${instance.getRandomValue()!=null?instance.getRandomValue():descriptor.getDefaultRandomValue()}" />
+        </f:entry>
+      </f:radioBlock>
+      <f:entry title="Build when the Rundeck Execution Status is :"
                help="/descriptor/org.jenkinsci.plugins.rundeck.RundeckTrigger/help/executionStatuses">
         <f:checkbox name="executionStatuses" title="SUCCEEDED" json="SUCCEEDED" checked="${instance.executionStatuses.contains('SUCCEEDED')}" default="true" /><st:nbsp/>
         <f:checkbox name="executionStatuses" title="FAILED" json="FAILED" checked="${instance.executionStatuses.contains('FAILED')}" /><st:nbsp/>
         <f:checkbox name="executionStatuses" title="ABORTED" json="ABORTED" checked="${instance.executionStatuses.contains('ABORTED')}" /><st:nbsp/>
       </f:entry>
-    </table>
+    </r:blockWrapper>
   </f:nested>
 </j:jelly>

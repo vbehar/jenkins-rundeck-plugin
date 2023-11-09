@@ -1,0 +1,10 @@
+# RundeckJobProjectLinkerAction
+# Just a data structure
+org.rundeck.api.domain.RundeckJob
+# RundeckJobProjectLinkerAction: Name is very suspicious, but this is just a data structure. Runtime content is stored within ApiCall
+org.rundeck.api.RundeckClient
+
+
+# RundeckCause - RundeckExecution and nested data types
+org.rundeck.api.domain.RundeckExecution
+org.rundeck.api.domain.RundeckNode

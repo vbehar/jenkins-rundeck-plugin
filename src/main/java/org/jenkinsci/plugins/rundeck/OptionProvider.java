@@ -1,10 +1,13 @@
 package org.jenkinsci.plugins.rundeck;
 
-import hudson.model.TopLevelItem;
-import hudson.model.AbstractProject;
+import hudson.Functions;
 import hudson.model.Hudson;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
+import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.Run.Artifact;
+import hudson.model.TopLevelItem;
 import hudson.util.RunList;
 import java.io.IOException;
 import java.io.Serializable;
@@ -18,9 +21,11 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
+import static hudson.model.Run.ARTIFACTS;
+
 /**
- * Option provider for RunDeck - see http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
- * 
+ * Option provider for Rundeck - see http://rundeck.org/docs/manual/jobs.html#option-model-provider
+ *
  * @author Vincent Behar
  */
 public class OptionProvider {
@@ -33,7 +38,7 @@ public class OptionProvider {
      */
     public void doArtifact(StaplerRequest request, StaplerResponse response) throws IOException {
         // mandatory parameters
-        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
+        Job<?, ?> project = findProject(request.getParameter("project"));
         if (project == null) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
             return;
@@ -57,15 +62,51 @@ public class OptionProvider {
             return;
         }
 
+        try {
+            this.checkArtifactPermissions(build);
+        }catch (Exception e){
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage());
+            return;
+        }
+
         List<Option> options = new ArrayList<OptionProvider.Option>();
         for (Artifact artifact : build.getArtifacts()) {
-            if (artifactPattern == null
-                || (artifactPattern != null && artifactPattern.matcher(artifact.getFileName()).matches())) {
+            if (artifactPattern == null || artifactPattern.matcher(artifact.getFileName()).matches()) {
                 options.add(new Option(artifact.getFileName(), buildArtifactUrl(build, artifact)));
             }
         }
 
         writeJson(options, response);
+    }
+
+    /**
+     * Builds a string representation of a tree of items
+     *
+     * @param item The item to traverse. Pass in null to start at the top level.
+     * @param sb A StringBuffer to hold the results.
+     */
+    private String getItemTree(Item item, StringBuffer sb) {
+        if (item == null) {
+            List<TopLevelItem> topItems = Hudson.getInstance().getItems();
+            for (TopLevelItem topItem: topItems) {
+                getItemTree(topItem, sb);
+            }
+        } else {
+            if (item instanceof ItemGroup) {
+                ItemGroup groupItem = (ItemGroup)item;
+                for (Object anItem: groupItem.getItems()) {
+                    if (anItem instanceof Item) {
+                        Item subItem = (Item)anItem;
+                        getItemTree(subItem, sb);
+                    }
+                }
+            } else {
+                sb.append(item.getFullName());
+                sb.append("\n");
+            }
+        }
+        // Add special handling for %2F (/ character) separator between multibranch pipeline project path elements
+        return sb.toString().replaceAll("%2F","%252F");
     }
 
     /**
@@ -77,9 +118,12 @@ public class OptionProvider {
      */
     public void doBuild(StaplerRequest request, StaplerResponse response) throws IOException {
         // mandatory parameters
-        AbstractProject<?, ?> project = findProject(request.getParameter("project"));
+        Job<?, ?> project = findProject(request.getParameter("project"));
+
         if (project == null) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !");
+            StringBuffer sb = new StringBuffer();
+            String itemTree = getItemTree(null, sb);
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "You must provide a valid 'project' parameter !" + "\n\n" + itemTree);
             return;
         }
         String artifactName = request.getParameter("artifact");
@@ -113,8 +157,9 @@ public class OptionProvider {
         RunList<?> builds = project.getBuilds();
         for (Run<?, ?> build : builds) {
             Artifact artifact = findArtifact(artifactName, artifactPattern, build);
+
             if (artifact != null) {
-                String buildName = "#" + build.getNumber() + " - " + build.getTimestampString2();
+                String buildName = build.getDisplayName();
                 options.add(new Option(buildName, buildArtifactUrl(build, artifact)));
             }
 
@@ -151,32 +196,27 @@ public class OptionProvider {
 
     /**
      * Find the Jenkins project matching the given name.
-     * 
+     *
      * @param projectName
-     * @return an {@link AbstractProject} instance, or null if not found
+     * @return an {@link Job} instance, or null if not found
      */
-    private AbstractProject<?, ?> findProject(String projectName) {
+    private Job<?, ?> findProject(String projectName) {
         if (StringUtils.isBlank(projectName)) {
             return null;
         }
 
-        TopLevelItem item = Hudson.getInstance().getItem(projectName);
-        if (AbstractProject.class.isInstance(item)) {
-            return (AbstractProject<?, ?>) item;
-        }
-
-        return null;
+        return Hudson.getInstance().getItemByFullName(projectName, Job.class);
     }
 
     /**
      * Find a build for the given project, using the provided buildNumber as a hint. If not found, will fallback to the
      * last build.
-     * 
+     *
      * @param buildNumber either a build number, or a reference ('lastStable', 'lastSuccessful', or 'last')
      * @param project
      * @return a {@link Run} instance representing the build, or null if we couldn't event find the last build.
      */
-    private Run<?, ?> findBuild(String buildNumber, AbstractProject<?, ?> project) {
+    private Run<?, ?> findBuild(String buildNumber, Job<?, ?> project) {
         // first, try with a direct build number reference
         try {
             Integer buildNb = Integer.parseInt(buildNumber);
@@ -207,7 +247,7 @@ public class OptionProvider {
     /**
      * Find an artifact of the given build, matching the artifactName (filename) or the artifactPattern (java-regex). If
      * not found, return null.
-     * 
+     *
      * @param artifactName exact filename of the artifact - may be null
      * @param artifactPattern to match against the artifact filename - may be null
      * @param build
@@ -215,6 +255,12 @@ public class OptionProvider {
      */
     private Artifact findArtifact(String artifactName, Pattern artifactPattern, Run<?, ?> build) {
         if (build == null) {
+            return null;
+        }
+
+        try{
+            this.checkArtifactPermissions(build);
+        }catch (Exception e){
             return null;
         }
 
@@ -232,22 +278,22 @@ public class OptionProvider {
 
     /**
      * Build the absolute url of the given artifact
-     * 
+     *
      * @param build
      * @param artifact
      * @return absolute url
      */
     private String buildArtifactUrl(Run<?, ?> build, Artifact artifact) {
         StringBuilder url = new StringBuilder();
-        url.append(Hudson.getInstance().getRootUrlFromRequest());
+        url.append(Hudson.getInstance().getRootUrl());
         url.append(build.getUrl()).append("artifact/").append(artifact.getHref());
         return url.toString();
     }
 
     /**
      * Outputs the given list of options as a JSON. See format at
-     * http://rundeck.org/docs/RunDeck-Guide.html#option-model-provider
-     * 
+     * http://rundeck.org/docs/manual/job-options.html#option-model-provider
+     *
      * @param options
      * @param response
      */
@@ -258,6 +304,12 @@ public class OptionProvider {
 
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().append(json);
+    }
+
+    private void checkArtifactPermissions(Run<?, ?> build){
+        if(Functions.isArtifactsPermissionEnabled()){
+            build.checkPermission(ARTIFACTS);
+        }
     }
 
     /**

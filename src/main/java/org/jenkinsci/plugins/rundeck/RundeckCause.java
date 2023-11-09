@@ -4,24 +4,31 @@ import hudson.EnvVars;
 import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
 import hudson.model.Cause;
-import org.rundeck.api.domain.RundeckExecution;
+import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rundeck.client.ExecutionData;
+import org.rundeck.client.api.model.Execution;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * The cause of a RunDeck initiated build (encapsulates the {@link RundeckExecution} at the origin of the RunDeck
+ * The cause of a Rundeck initiated build (encapsulates the {@link Execution} at the origin of the Rundeck
  * notification).
- * 
+ *
  * @author Vincent Behar
  */
 public class RundeckCause extends Cause {
 
-    private final RundeckExecution execution;
+    private static final Pattern ARG_STRING_PATTERN = Pattern.compile("(\\S+)\\s\"?(.+)");
+
+    private final transient Execution execution;
 
     /**
      * Instantiate a new cause for the given execution
-     * 
-     * @param execution at the origin of the RunDeck notification
+     *
+     * @param execution at the origin of the Rundeck notification
      */
-    public RundeckCause(RundeckExecution execution) {
+    public RundeckCause(Execution execution) {
         super();
         this.execution = execution;
     }
@@ -31,18 +38,23 @@ public class RundeckCause extends Cause {
         StringBuilder description = new StringBuilder();
         if (execution != null) {
             description.append("Started by <a href=\"");
-            description.append(execution.getUrl());
-            description.append("\">RunDeck Execution #");
+            description.append(execution.getPermalink());
+            description.append("\">Rundeck Execution #");
             description.append(execution.getId());
             description.append("</a>");
             if (execution.getJob() != null) {
+                String fullname = execution.getJob().getName();
+                if (execution.getJob().getGroup() != null) {
+                    fullname = execution.getJob().getGroup()+"/"+execution.getJob().getName();
+                }
+
                 description.append(" [");
                 description.append(execution.getJob().getProject());
                 description.append("] ");
-                description.append(execution.getJob().getFullName());
+                description.append(fullname);
             }
         } else {
-            description.append("Started by a RunDeck Notification");
+            description.append("Started by a Rundeck Notification");
         }
         return description.toString();
     }
@@ -84,24 +96,26 @@ public class RundeckCause extends Cause {
     }
 
     /**
-     * {@link EnvironmentContributingAction} used to make information about the {@link RundeckExecution} available to
+     * {@link EnvironmentContributingAction} used to make information about the {@link Execution} available to
      * the build (as environment variables)
      */
     public static class RundeckExecutionEnvironmentContributingAction implements EnvironmentContributingAction {
 
-        private final RundeckExecution execution;
+        private final transient Execution execution;
 
         /**
          * Instantiate a new action, which will use the data from the given execution
-         * 
-         * @param execution at the origin of the RunDeck notification
+         *
+         * @param execution at the origin of the Rundeck notification
          */
-        public RundeckExecutionEnvironmentContributingAction(RundeckExecution execution) {
+        public RundeckExecutionEnvironmentContributingAction(Execution execution) {
             super();
             this.execution = execution;
         }
 
         public void buildEnvVars(AbstractBuild<?, ?> build, EnvVars env) {
+            ExecutionData executionData = new ExecutionData(execution);
+
             if (execution != null) {
                 if (execution.getJob() != null) {
                     env.put("RDECK_JOB_ID", String.valueOf(execution.getJob().getId()));
@@ -112,21 +126,42 @@ public class RundeckCause extends Cause {
                 }
                 env.put("RDECK_EXEC_ID", String.valueOf(execution.getId()));
                 env.put("RDECK_EXEC_STATUS", String.valueOf(execution.getStatus()));
-                env.put("RDECK_EXEC_STARTED_BY", String.valueOf(execution.getStartedBy()));
-                env.put("RDECK_EXEC_STARTED_AT", String.valueOf(execution.getStartedAt()));
-                env.put("RDECK_EXEC_ENDED_AT", String.valueOf(execution.getEndedAt()));
-                env.put("RDECK_EXEC_ABORTED_BY", String.valueOf(execution.getAbortedBy()));
-                env.put("RDECK_EXEC_DURATION_MILLIS", String.valueOf(execution.getDurationInMillis()));
-                env.put("RDECK_EXEC_DURATION_SECONDS", String.valueOf(execution.getDurationInSeconds()));
-                env.put("RDECK_EXEC_DURATION", String.valueOf(execution.getDuration()));
-                env.put("RDECK_EXEC_SHORT_DURATION", String.valueOf(execution.getShortDuration()));
-                env.put("RDECK_EXEC_URL", String.valueOf(execution.getUrl()));
+                env.put("RDECK_EXEC_STARTED_BY", String.valueOf(execution.getUser()));
+                env.put("RDECK_EXEC_STARTED_AT", String.valueOf(execution.getDateStarted().date));
+
+                if(execution.getDateEnded()!=null){
+                    env.put("RDECK_EXEC_ENDED_AT", String.valueOf(execution.getDateEnded().date));
+                }
+                env.put("RDECK_EXEC_ABORTED_BY", String.valueOf(execution.getUser()));
+                env.put("RDECK_EXEC_DURATION_MILLIS", String.valueOf(executionData.getDurationInMillis()));
+                env.put("RDECK_EXEC_DURATION_SECONDS", String.valueOf(executionData.getDurationInSeconds()));
+                env.put("RDECK_EXEC_DURATION", String.valueOf(executionData.getDuration()));
+                env.put("RDECK_EXEC_SHORT_DURATION", String.valueOf(executionData.getShortDuration()));
+                env.put("RDECK_EXEC_URL", String.valueOf(execution.getHref()));
                 env.put("RDECK_EXEC_DESCRIPTION", String.valueOf(execution.getDescription()));
+
+                if ( StringUtils.isNotEmpty(execution.getArgstring())) {
+                    // Split argstring around hyphens at the beginning or a combination of whitespace and hyphen
+                    String[] args = execution.getArgstring().split("^-|\\s-");
+                    for (int i = 1; i < args.length; i++) {
+                        final Matcher matcher = ARG_STRING_PATTERN.matcher(args[i]);
+                        if (matcher.matches()) {
+                            final String key = matcher.group(1);
+                            String value = StringUtils.trim(matcher.group(2));
+                            if (value.endsWith("\"")) {
+                                value = value.substring(0, value.length()-1);
+                            }
+
+                            env.put("RDECK_EXEC_ARG_" + key, value);
+                        }
+                    }
+                }
+
             }
         }
 
         public String getDisplayName() {
-            return execution != null ? "Started by RunDeck Execution #" + execution.getId() : null;
+            return execution != null ? "Started by Rundeck Execution #" + execution.getId() : null;
         }
 
         public String getIconFileName() {
@@ -134,7 +169,7 @@ public class RundeckCause extends Cause {
         }
 
         public String getUrlName() {
-            return execution != null ? execution.getUrl() : null;
+            return execution != null ? execution.getPermalink() : null;
         }
     }
 

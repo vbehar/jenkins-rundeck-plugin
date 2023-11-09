@@ -1,0 +1,7 @@
+language: java
+addons:
+  hosts:
+    - rdjenkins
+  hostname: rdjenkins
+jdk:
+  - openjdk8

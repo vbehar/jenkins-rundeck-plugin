@@ -1,0 +1,17 @@
+
+https://wiki.jenkins-ci.org/display/JENKINS/Hosting+Plugins#HostingPlugins-Releasingtojenkinsci.org
+
+# for ssh to github
+
+eval `ssh-agent -s`
+
+
+# make sure ~/.m2/settings.xml defines creds for jenkins-ci.org account
+
+# if encrypted password doesn't work try plain password
+
+
+# use maven 3.0.5
+
+## do NOT separate into two commands:
+mvn release:prepare release:perform

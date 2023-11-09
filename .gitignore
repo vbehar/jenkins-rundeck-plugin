@@ -1,5 +1,9 @@
 .classpath
 .project
 .settings
+.factorypath
 target
 work
+
+*.iml
+.idea/
